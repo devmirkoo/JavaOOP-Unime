@@ -20,13 +20,26 @@ It is organised into two main categories:
 
 ```
 ExercicesJava-Unime/
-└── Esercizitazione (Self)/   # Independent self-practice exercises
-    └── Livello 1/            # Level 1 – introductory exercises
-        ├── Esercizio 1/
-        ├── Esercizio 2/
-        ├── Esercizio 3/
-        ├── Esercizio 4/
-        └── Esercizio 5/
+├── Esercizitazione (Self)/      # Independent self-practice exercises
+│   ├── Livello 1/               # Level 1 – introductory exercises
+│   │   ├── Esercizio 1/
+│   │   ├── Esercizio 2/
+│   │   ├── Esercizio 3/
+│   │   ├── ...
+│   │   └── Esercizio n/
+│   ├── Livello 2/               # Level 2 – intermediate exercises
+│   │   ├── Esercizio 1/
+│   │   ├── ...
+│   │   └── Esercizio n/
+│   ├── ...
+│   └── Livello n/
+│       ├── Esercizio 1/
+│       ├── ...
+│       └── Esercizio n/
+├── Professor Exercises/         # Official course exercises (planned)
+│   ├── Exercise .../
+│   └── ...
+└── ...
 ```
 
 Each exercise folder is a standalone IntelliJ IDEA project containing one or more `.java` source files.
