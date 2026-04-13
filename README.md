@@ -23,7 +23,7 @@ ExercicesJava-Unime/
 └── Esercizitazione (Self)/   # Independent self-practice exercises
     └── Livello 1/            # Level 1 – introductory exercises
         ├── Esercizio 1/
-        ├── Esercizio2/
+        ├── Esercizio 2/
         ├── Esercizio 3/
         ├── Esercizio 4/
         └── Esercizio 5/
