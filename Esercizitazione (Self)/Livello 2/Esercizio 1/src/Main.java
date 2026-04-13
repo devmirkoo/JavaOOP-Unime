@@ -1,3 +1,12 @@
+/*
+* Esercizio 1: Classe base e Istanziazione.
+Obiettivo: Creare una classe personalizzata e istanziarla.
+Come fare: Definisci una classe Automobile con tre variabili d'istanza: fuel (double), speed (double) e license (String).
+* Crea due metodi pubblici: accelerate(double pedalPressure) e decelerate().
+* Nel metodo main di un'altra classe, crea due oggetti di tipo Automobile usando l'operatore new.
+* Assegna valori diversi alle loro variabili e richiama i metodi per vederne l'effetto.
+*  */
+
 public class Main {
     public static void main(String[] args){
         Automobile auto1 = new Automobile();
