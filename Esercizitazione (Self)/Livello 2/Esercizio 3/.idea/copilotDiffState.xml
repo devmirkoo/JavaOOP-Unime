@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="/Purchase (snapshot).java">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="/Purchase (snapshot).java" />
+              <option name="originalContent" value="/*&#10;* Esercizio 3: Incapsulamento e Validazione.&#10;Obiettivo: Nascondere i dati interni e fornire un accesso controllato (Information Hiding).&#10;Come fare: Crea una classe Purchase in cui tutte le variabili d'istanza (come nome, prezzo e quantità) hanno il modificatore private.&#10;*  Crea metodi accessori (getter) e mutatori (setter) public per ogni variabile.&#10;* Nel metodo setPrice, inserisci un controllo if per lanciare un avviso o impedire l'assegnazione se il prezzo fornito è un numero negativo.&#10;* */&#10;&#10;public class Purchase {&#10;    private String name;&#10;    private Double price;&#10;    private Integer amount;&#10;&#10;    public void showInfo() {&#10;        System.out.printf(&quot;INFO DISPOSITIVO\nNome: %s\nPrezzo: %.2f\nQuanità disponibile:%d\n&quot;, this.name, this.amount, this.price);&#10;    }&#10;&#10;    public String getName() {&#10;        return name;&#10;    }&#10;&#10;    public void setName(String name) {&#10;        this.name = name;&#10;    }&#10;&#10;    public Double getPrice() {&#10;        return price;&#10;    }&#10;&#10;    public void setPrice(Double price) {&#10;        if (price &lt; 0) {&#10;            System.out.println(&quot;Il prezzo inserito risulta negativo (minore di 0)&quot;);&#10;            return;&#10;        }&#10;&#10;        this.price = price;&#10;    }&#10;&#10;    public Integer getAmount() {&#10;        return amount;&#10;    }&#10;&#10;    public void setAmount(Integer amount) {&#10;        this.amount = amount;&#10;    }&#10;}&#10;" />
+              <option name="updatedContent" value="/*&#10;* Esercizio 3: Incapsulamento e Validazione.&#10;Obiettivo: Nascondere i dati interni e fornire un accesso controllato (Information Hiding).&#10;Come fare: Crea una classe Purchase in cui tutte le variabili d'istanza (come nome, prezzo e quantità) hanno il modificatore private.&#10;*  Crea metodi accessori (getter) e mutatori (setter) public per ogni variabile.&#10;* Nel metodo setPrice, inserisci un controllo if per lanciare un avviso o impedire l'assegnazione se il prezzo fornito è un numero negativo.&#10;* */&#10;&#10;public class Purchase {&#10;    private String name;&#10;    private Double price;&#10;    private Integer amount;&#10;&#10;    public void showInfo() {&#10;        System.out.printf(&quot;INFO DISPOSITIVO\nNome: %s\nPrezzo: %.2f\nQuantita disponibile: %d\n&quot;,&#10;                this.name,&#10;                this.price,&#10;                this.amount);&#10;    }&#10;&#10;    public String getName() {&#10;        return name;&#10;    }&#10;&#10;    public void setName(String name) {&#10;        this.name = name;&#10;    }&#10;&#10;    public Double getPrice() {&#10;        return price;&#10;    }&#10;&#10;    public void setPrice(Double price) {&#10;        if (price &lt; 0) {&#10;            System.out.println(&quot;Il prezzo inserito risulta negativo (minore di 0)&quot;);&#10;            return;&#10;        }&#10;&#10;        this.price = price;&#10;    }&#10;&#10;    public Integer getAmount() {&#10;        return amount;&#10;    }&#10;&#10;    public void setAmount(Integer amount) {&#10;        this.amount = amount;&#10;    }&#10;}" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
