@@ -1,11 +1,7 @@
-/*
-* Esercizio 3: Incapsulamento e Validazione.
-Obiettivo: Nascondere i dati interni e fornire un accesso controllato (Information Hiding).
-Come fare: Crea una classe Purchase in cui tutte le variabili d'istanza (come nome, prezzo e quantità) hanno il modificatore private.
-*  Crea metodi accessori (getter) e mutatori (setter) public per ogni variabile.
-* Nel metodo setPrice, inserisci un controllo if per lanciare un avviso o impedire l'assegnazione se il prezzo fornito è un numero negativo.
-* */
-
+/**
+ * Classe per l'esercizio su incapsulamento e validazione.
+ * I campi sono private e vengono gestiti solo tramite getter/setter.
+ */
 public class Purchase {
     private String name;
     private Double price;
@@ -25,6 +21,7 @@ public class Purchase {
     }
 
     public void setPrice(Double price) {
+        // Regola di dominio: il prezzo non può essere negativo.
         if (price < 0) {
             System.out.println("Il prezzo inserito risulta negativo (minore di 0)");
             return;

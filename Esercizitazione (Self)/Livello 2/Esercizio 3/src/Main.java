@@ -1,3 +1,7 @@
+/**
+ * Programma dimostrativo per verificare il comportamento dei setter di Purchase.
+ * Include casi validi e un caso non valido per il controllo sul prezzo.
+ */
 public class Main {
     public static void main(String[] args) {
         // Caso 1: inizializzazione valida
@@ -31,6 +35,7 @@ public class Main {
         printPurchase("Caso 4 - Prezzo zero", promo);
     }
 
+    // Metodo di supporto per stampare sempre lo stesso formato di output.
     private static void printPurchase(String titolo, Purchase purchase) {
         System.out.printf("\n%s\nNome: %s\nPrezzo: %.2f\nQuantita: %d\n",
                 titolo,
