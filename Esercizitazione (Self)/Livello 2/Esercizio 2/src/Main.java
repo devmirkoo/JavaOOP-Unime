@@ -1,5 +1,9 @@
+/**
+ * Classe di test per confrontare i tre costruttori sovraccaricati di Pet.
+ */
 public class Main {
     public static void  main(String[] args){
+        // Tre creazioni con firme differenti: (), (String), (String, Integer, Double).
         Pet dog = new Pet();
         Pet cat = new Pet("Arturo");
         Pet lizard = new Pet("Tom", 10, 5.0);

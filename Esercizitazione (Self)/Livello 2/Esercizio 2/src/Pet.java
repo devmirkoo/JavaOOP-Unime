@@ -1,31 +1,24 @@
-/*
-* Esercizio 2: Costruttori Multipli (Overloading).
-Obiettivo: Inizializzare gli oggetti in modi diversi.
-Come fare: Crea una classe Pet con variabili per nome, età e peso.
-*
-* Definisci più costruttori (overloading):
-* un costruttore di default (senza parametri),
-* uno che accetta solo il nome (impostando età e peso a 0),
-* e uno che accetta nome, età e peso.
-*
-* Nel main, crea tre oggetti Pet sfruttando i tre costruttori differenti
-* per capire come Java distingua le firme dei metodi.
-*  */
-
+/**
+ * Classe usata per esercitare l'overloading dei costruttori.
+ * Consente diverse strategie di inizializzazione dello stesso tipo oggetto.
+ */
 public class Pet {
 
     private String name;
     private Integer age;
     private Double weight;
 
-
+    // Costruttore di default: lascia i campi non inizializzati esplicitamente.
     public Pet(){};
+
+    // Costruttore parziale: inizializza solo il nome e assegna default agli altri campi.
     public Pet(String name) {
         this.name = name;
         this.age = 0;
         this.weight = 0.0;
     }
 
+    // Costruttore completo: inizializza tutti gli attributi dell'oggetto.
     public Pet(String name, Integer age, Double weight) {
         this.name = name;
         this.age = age;
