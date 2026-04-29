@@ -1,14 +1,7 @@
-/*
-Esercizio 2: Selection Sort su Array.
-Obiettivo: Ordinare i dati implementando un algoritmo classico.
-Come fare: Crea un array di numeri interi disordinati.
- Implementa l'algoritmo Selection Sort: usa due cicli for annidati.
- Il ciclo esterno scorre l'array; il ciclo interno trova l'elemento più piccolo tra quelli rimanenti.
- Scambia la posizione dell'elemento più piccolo trovato con quello corrente (usa una variabile temporanea per lo scambio).
- Stampa l'array prima e dopo l'ordinamento.
-*/
-
-
+/**
+ * Esercizio sull'algoritmo Selection Sort.
+ * Mostra generazione dati, stampa e ordinamento in-place di un array.
+ */
 public class Main {
     public  static void  printArray(int[] arr){
         for (int i = 0; i < arr.length; i++){
@@ -27,6 +20,7 @@ public class Main {
 
         printArray(array);
 
+       // Selection Sort: ad ogni iterazione posiziona il minimo nella cella corrente.
        for (int k = 0; k < space - 1; k++) {
            int minIndex = k;
            for (int j = k + 1; j < space; j++) {
