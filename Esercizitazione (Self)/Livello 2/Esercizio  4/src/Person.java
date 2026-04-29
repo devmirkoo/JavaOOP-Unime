@@ -1,14 +1,7 @@
-/*
-* Esercizio 4: Ereditarietà e Override.
-Obiettivo: Riutilizzare il codice tramite la specializzazione delle classi.
-Come fare:
-* Scrivi una classe base Person con un attributo name e un metodo writeOutput().
-* Crea una sottoclasse Student che derivi da Person usando la parola chiave extends.
-* Aggiungi a Student la variabile studentNumber. Fai l'override del metodo writeOutput(),
-* definendolo in Student in modo che prima chiami super.writeOutput() (per stampare il nome)
-* e poi stampi il numero di matricola.
-*  */
-
+/**
+ * Classe base dell'esercizio su ereditarieta'.
+ * Espone un comportamento comune (writeOutput) riutilizzabile dalle sottoclassi.
+ */
 public class Person {
     private String name;
 
