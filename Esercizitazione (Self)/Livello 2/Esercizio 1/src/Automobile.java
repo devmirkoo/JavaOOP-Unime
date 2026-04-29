@@ -1,7 +1,9 @@
-
-
+/**
+ * Classe modello per introdurre variabili d'istanza, metodi e stato oggetto.
+ * Simula in modo semplice accelerazione/decelerazione e consumo carburante.
+ */
 public class Automobile {
-    // Costants
+    // Costanti di simulazione.
     private final double MAX_POWER = 5.0;
     private final double FUEL_CONSUMPTION_RATE = 0.1;
     private final double BRAKE_POWER = 8.0;
@@ -11,9 +13,10 @@ public class Automobile {
     private double fuel;
     private String license;
 
-    // Public Methods
+    // Metodi di comportamento dell'oggetto.
     public void accelerate(double pedalPressure) {
         if (this.fuel > 0) {
+            // L'accelerazione cresce con la pressione sul pedale.
             double acceleration = MAX_POWER * pedalPressure;
             this.speed += acceleration;
             this.fuel -= pedalPressure * FUEL_CONSUMPTION_RATE;
@@ -24,6 +27,7 @@ public class Automobile {
     }
 
     public void decelerate(double brakePressure) {
+        // La decelerazione combina freno e attrito minimo.
         double deceleration = (BRAKE_POWER * brakePressure) + FRICTION;
 
         this.speed -= deceleration;
@@ -33,8 +37,7 @@ public class Automobile {
         }
     }
 
-
-    // Getter & Setter
+    // Accesso controllato ai campi (incapsulamento).
     public void setSpeed(double speed) {
         this.speed = speed;
     }
