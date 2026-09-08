@@ -1,6 +1,5 @@
 # Esercizio 3 (13 Punti) - Concorrenza e Sincronizzazione (Wait/Notify)
 
-**Regole Appello:** 30 minuti totali per 3 esercizi. Max 5 esecuzioni per esercizio. Tutte le classi nello stesso file (Main.java).
 
 All'interno del file `Soluzione.java` sono già fornite le classi `Produttore` e `Consumatore`, completamente implementate. Tali classi sono progettate per interagire concorrentemente con una risorsa condivisa.
 
