@@ -1,80 +1,237 @@
 # JavaOOP-Unime
 
-> Un repository personale di studio per il corso di **Programmazione a Oggetti (OOP) con Java** presso l'**Università degli Studi di Messina (Unime)**, corso di laurea in Informatica.
+Repository personale di studio per **Programmazione a Oggetti (Java)** — Università degli Studi di Messina, corso di laurea in Informatica.
+
+Non è un'applicazione e non ha un build system a livello di root: è **materiale di studio**. Appunti in Markdown, esercizi svolti a mano, e un apparato per simulare l'appello nelle stesse condizioni in cui si svolge davvero.
+
+La lingua del repository è l'italiano — tracce, appunti, report e commit.
 
 ---
 
-## 📖 Informazioni
+## Indice
 
-Questo repository funge da manuale personale e raccolta di esercizi per l'apprendimento e la pratica dei concetti di Programmazione a Oggetti utilizzando Java.  
-È organizzato in due categorie principali:
-
-| Categoria | Descrizione |
-|----------|-------------|
-| **Esercitazioni (Self)** (`Esercitazioni (Self)`) | Esercizi scritti in modo indipendente, senza guida esterna, per rafforzare la comprensione degli argomenti trattati a lezione. |
-| **Esercizi del Professore** *(in arrivo)* | Esercizi rilasciati ufficialmente dal professore del corso come parte del curriculum. |
+- [Le quattro aree](#le-quattro-aree)
+- [Struttura](#struttura)
+- [`Teoria/` — gli appunti](#teoria--gli-appunti)
+- [`Esercitazioni (Self)/` — il percorso a 7 livelli](#esercitazioni-self--il-percorso-a-7-livelli)
+- [`Exams/` — appelli reali e simulazioni](#exams--appelli-reali-e-simulazioni)
+- [Compilare ed eseguire](#compilare-ed-eseguire)
+- [L'aula d'esame](#laula-desame)
+- [Perché tutto questo: le regole d'appello](#perché-tutto-questo-le-regole-dappello)
+- [Cosa non trovi qui](#cosa-non-trovi-qui)
+- [Licenza](#licenza)
 
 ---
 
-## 🗂️ Struttura del Repository
+## Le quattro aree
+
+| Area | Cosa contiene | A cosa serve |
+|---|---|---|
+| **`Teoria/`** | Appunti in Markdown, ~3 500 righe | Studiare e ripassare la teoria, con gli esempi già compilati e verificati |
+| **`Esercitazioni (Self)/`** | Esercizi Java scritti dallo studente, organizzati su 7 livelli | Fare pratica in ordine crescente di difficoltà |
+| **`Exams/`** | Tracce d'appello reali, tester black-box, e gli strumenti per simulare l'esame | Prepararsi alla prova, non solo alla materia |
+| **`docs/`** | Decisioni di design sul repository | Ricordare perché il repository è fatto così |
+
+---
+
+## Struttura
 
 ```text
-ExercicesJava-Unime/
-├── Teoria/                      # Appunti, concetti e teoria
-│   ├── Appunti_Pratici_Livelli/ # Teoria relativa ai livelli pratici
-│   ├── Fondamenti_e_Pilastri_OOP/ # Fondamenti e storia di Java, pilastri OOP
-│   └── Extra/                   # Appunti extra (es. Client-Server)
-├── Esercitazioni (Self)/        # Esercizi di pratica indipendente
-│   ├── Livello 1/               # Livello 1 – esercizi introduttivi
-│   │   ├── Esercizio 1/
-│   │   ├── ...
-│   │   └── Esercizio n/
-│   ├── Livello 2/               # Livello 2 – esercizi intermedi
-│   │   ├── Esercizio 1/
-│   │   ├── ...
-│   │   └── Esercizio n/
-│   ├── ...
-│   └── Livello n/               # Livello n – esercizi su argomenti specifici
-│       ├── Esercizio 1/
-│       ├── ...
-│       └── Esercizio n/
-├── Professor Exercises/         # Esercizi ufficiali del corso (in programma)
-│   ├── Exercise .../
-│   └── ...
-└── ...
+JavaOOP-Unime/
+│
+├── Teoria/
+│   ├── Fondamenti_e_Pilastri_OOP/       teoria trasversale, 01 → 06
+│   ├── Appunti_Pratici_Livelli/         un file per Livello 1-7
+│   ├── Extra/                           approfondimenti (client-server)
+│   └── MAPPA_LACUNE.md                  appelli ↔ appunti: cosa mancava, dove è stato colmato
+│
+├── Esercitazioni (Self)/
+│   ├── Livello 1/ … Livello 7/
+│   │   ├── Esercizio 1/ … Esercizio N/  un progetto indipendente ciascuno
+│   │   └── Progetti Recap/              esercizi di sintesi del livello
+│   ├── Extra/                           progetti fuori percorso
+│   └── Q&A.MD                           domande e risposte per l'orale, per livello
+│
+├── Exams/
+│   ├── Appelli Ufficiali Unime/
+│   │   ├── EXAM1/  EXAM2/               appelli ricostruiti
+│   │   ├── EXAM3/  EXAM4/               appelli realmente sostenuti
+│   │   └── …/ESn/                       README (traccia) · Soluzione.java · Main.class (tester)
+│   ├── Simulazioni/GUIDA_PUBBLICA.md    come è fatta, si genera e si corregge una simulazione
+│   ├── ESAMI_PASSATI.MD                 tracce testuali degli appelli reali + regole d'appello
+│   ├── REGOLE_GENERAZIONE_AI.MD         specifica per generare una simulazione fedele
+│   ├── aula.py                          aula d'esame in browser: tracce, cronometro, Esegui, consegna
+│   └── esegui.sh                        replica il pulsante Esegui sul singolo esercizio
+│
+├── docs/superpowers/specs/              decisioni di design
+├── CLAUDE.md                            istruzioni per gli agenti che lavorano sul repository
+└── LICENSE                              MIT
 ```
 
-Ogni cartella di esercizio è un progetto IntelliJ IDEA indipendente contenente uno o più file sorgente `.java`.
+---
+
+## `Teoria/` — gli appunti
+
+Due collezioni complementari, più un documento di controllo.
+
+### `Fondamenti_e_Pilastri_OOP/` — la teoria trasversale
+Sei file numerati che si leggono in ordine: architettura e JVM, sintassi e memoria, strutture di controllo, i pilastri OOP, costruttori e ciclo di vita, OOP avanzata. È il "perché" del linguaggio, indipendente dal programma del corso.
+
+### `Appunti_Pratici_Livelli/` — un file per livello
+Segue il Syllabus a sette livelli, uno a uno. Ogni file è autosufficiente: teoria, esempi di codice, e una sezione **Errori Comuni** che raccoglie gli sbagli realmente commessi, non quelli ipotetici.
+
+| File | Argomenti |
+|---|---|
+| `Livello 1` | Sintassi, `Scanner`, primitive, cicli, array, stringhe |
+| `Livello 2` | Classi e oggetti, information hiding, `privacy leak`, `equals`/`hashCode`/`toString`, `static`, `ArrayList`, `HashMap`, wrapper e autoboxing, `Iterator`, classi annidate |
+| `Livello 3` | Ereditarietà, `super`, classi astratte, interfacce, `Comparable`, eccezioni (le 5 keyword, custom, `throws` e override) |
+| `Livello 4` | `File`, stream e Decorator, file di testo, file binari, **serializzazione su file e attraverso socket**, Swing, JavaFX |
+| `Livello 5` | Processi e thread, `Runnable`, `synchronized`, `wait`/`notifyAll`, produttore/consumatore, `join()`, deadlock |
+| `Livello 6` | TCP (`Socket`/`ServerSocket`), **UDP richiesta e risposta**, `URL` e HTTP, XML con SAX e DOM |
+| `Livello 7` | Maven, JDBC, NoSQL, Spring Boot |
+
+Gli esempi di codice sono **compilati ed eseguiti** prima di entrare negli appunti, quelli di rete e concorrenza compresi.
+
+### `MAPPA_LACUNE.md`
+Il documento di controllo: confronta quello che gli appelli hanno davvero chiesto con quello che gli appunti coprivano, e registra ogni buco trovato, dove è stato colmato e cosa resta scoperto. Il criterio non è *"l'argomento manca"* ma **"manca nella forma che l'esame chiede"** — un esempio di serializzazione su file insegna la serializzazione e non insegna la destinazione.
 
 ---
 
-## 🎯 Obiettivi
+## `Esercitazioni (Self)/` — il percorso a 7 livelli
 
-- Comprendere e applicare i principi fondamentali dell'OOP (incapsulamento, ereditarietà, polimorfismo, astrazione).
-- Fare pratica con la sintassi Java e le librerie standard.
-- Costruire un riferimento personale per la preparazione all'esame.
+Esercizi scritti dallo studente, uno per cartella, ciascuno con il proprio `README.md` che contiene la traccia (titolo, descrizione, obiettivo didattico, esempio di output).
 
----
+| Livello | Tema |
+|---|---|
+| **1** | Basi e sintassi |
+| **2** | Fondamenti OOP |
+| **3** | OOP avanzata ed eccezioni |
+| **4** | I/O, file, `Serializable`, Swing |
+| **5** | JVM e thread |
+| **6** | Networking e XML |
+| **7** | Maven, JDBC, NoSQL, Spring |
 
-## 🏫 Informazioni sul Corso
-
-- **Università:** Università degli Studi di Messina (Unime)
-- **Corso di Laurea:** Informatica
-- **Materia:** Programmazione a Oggetti – Java
-
----
-
-## 🤝 Contribuire
-
-Sentiti libero di aprire una **Pull Request** se noti un bug, hai un suggerimento o vuoi aggiungere miglioramenti.  
-Per favore, mantieni ogni esercizio nella propria cartella e segui la convenzione di denominazione esistente.
+Ogni livello chiude con **`Progetti Recap/`**: esercizi più grandi che mettono insieme gli argomenti del livello. `Q&A.MD` raccoglie le domande dell'orale ordinate per livello.
 
 ---
 
-## 📄 Licenza
+## `Exams/` — appelli reali e simulazioni
 
-Questo progetto è inteso solo per uso educativo personale.
+La parte più specifica del repository, e la ragione per cui esiste in questa forma.
+
+### Appelli ufficiali
+
+Quattro appelli in `Appelli Ufficiali Unime/`. **EXAM3 ed EXAM4 sono stati realmente sostenuti**; EXAM1 ed EXAM2 sono ricostruzioni. Ogni esercizio è una cartella:
+
+| File | Cos'è |
+|---|---|
+| `README.md` | La traccia, nello stile scarno dell'appello, con l'**output atteso** |
+| `Soluzione.java` | Il foglio di partenza: solo gli `import`. È il file che compili |
+| `Main.class` | Il **tester black-box**, già compilato. Il sorgente non esiste, come all'appello |
+| `_solutions/ESn/` | Soluzione di riferimento commentata nel punto esatto di ogni errore, più le note di correzione |
+
+I tester non verificano solo l'output: verificano **il modo**. Alcuni leggono la classe per riflessione (una classe annidata è davvero non statica?), altri contengono il server e contano le connessioni ricevute — così una soluzione che serializza su file invece che sulla rete fallisce anche se l'oggetto "torna indietro" corretto.
+
+### Simulazioni
+
+`Simulazioni/GUIDA_PUBBLICA.md` descrive struttura, scala di difficoltà a quattro livelli, regole di avanzamento e il procedimento di generazione e correzione. `REGOLE_GENERAZIONE_AI.MD` è la specifica vincolante: ambiente, stile della traccia, tester black-box, rubrica di correzione a quattro assi.
+
+Le simulazioni generate e i punteggi sono materiale personale e **non stanno nel repository** (vedi [Cosa non trovi qui](#cosa-non-trovi-qui)).
 
 ---
 
-*✍️ **Nota dell'Autore**: La parte `Esercitazioni (Self)` di questo repository è stata progettata, revisionata e ristrutturata con l'assistenza dell'intelligenza artificiale (Gemini CLI), sulla base delle bacheche e dei file PDF/PowerPoint forniti originariamente dal professore per facilitare l'apprendimento progressivo e professionale di Java.*
+## Compilare ed eseguire
+
+Non c'è un task runner: si compila a mano, dalla cartella dell'esercizio. Tre layout, tre modi.
+
+**Progetti con `src/`** (Livelli 1-6, nati in IntelliJ):
+```bash
+javac -d out/production src/*.java
+java -cp out/production Main
+```
+
+**Progetti "flat"** (Progetti Recap, Exams — `.java` e `.class` nella stessa cartella):
+```bash
+javac *.java
+java Main
+```
+
+**Livello 7** (Maven):
+```bash
+mvn clean install
+mvn exec:java -Dexec.mainClass="org.esercizio.unime.App"
+```
+
+Non ci sono test unitari: nessun JUnit configurato. L'unico meccanismo di verifica è il tester black-box degli esami.
+
+---
+
+## L'aula d'esame
+
+Due strumenti in Python e shell, senza dipendenze, che riproducono le condizioni della prova.
+
+### `aula.py` — la prova completa
+
+```bash
+python3 Exams/aula.py "Exams/Simulazioni/Prove/SIM_1"
+python3 Exams/aula.py "Exams/Appelli Ufficiali Unime/EXAM4"    # rifare un appello vero
+python3 Exams/aula.py <cartella> --durata 45 --riparti --senza-editor --porta 8765
+```
+
+Apre l'editor sulla cartella e una pagina locale con le tre tracce, il cronometro, un **Esegui** per esercizio e il pulsante **Consegna**. Dopo un Esegui mostra il verdetto e le verifiche una per una, con atteso e ottenuto su quelle fallite — come il riquadro dei test di Moodle.
+
+Alla consegna — manuale o allo scadere del tempo, che blocca le esecuzioni — genera `Consegna_<SIM>_<data>.md` con i **soli dati grezzi**: esecuzioni, tempi, output, codice consegnato. Nessun punteggio: la correzione è un passaggio separato.
+
+### `esegui.sh` — il singolo esercizio
+
+```bash
+./Exams/esegui.sh "Exams/Appelli Ufficiali Unime/EXAM4/ES2"
+./Exams/esegui.sh <cartella> --stato     # esecuzioni consumate
+./Exams/esegui.sh <cartella> --reset     # azzera il contatore
+```
+
+Replica il pulsante Esegui e conta i tentativi. I due strumenti condividono il contatore, quindi si possono alternare.
+
+---
+
+## Perché tutto questo: le regole d'appello
+
+L'esame si svolge dentro una pagina **Moodle**, in un'area di scrittura di livello blocco note: nessun controllo di sintassi, nessun completamento, nessuna segnalazione di errore mentre scrivi.
+
+| Vincolo | Valore |
+|---|---|
+| Tempo | **45 minuti** totali per 3 esercizi, gestibili liberamente |
+| Punteggio | **31 punti** (5 + 13 + 13) |
+| File | **Tutte le classi di un esercizio in un unico file** |
+| Esecuzioni | **Massimo 5 per esercizio**; oltre, penalità. Un errore di compilazione ne consuma una come un successo |
+| Test | Invisibile. L'output atteso è però indicato nella traccia |
+
+E il criterio di correzione che conta più di tutti: **il docente non valuta soltanto se il programma funziona, ma se hai costruito esattamente la struttura richiesta.** Caso reale: codice compilante con output corretto, penalizzato di 3-5 punti perché le stampe non erano dentro il blocco `finally` che la traccia imponeva.
+
+È il motivo per cui gli appunti hanno una sezione "Errori Comuni" e i tester controllano il modo: **l'asse a rischio più alto è l'aderenza letterale, non la correttezza.**
+
+---
+
+## Cosa non trovi qui
+
+Alcune cose esistono in locale ma sono deliberatamente fuori dal repository. Prima di dire "non c'è", tieni presente che:
+
+| Escluso | Perché |
+|---|---|
+| `java_lessons/` | Materiale del professore: non ridistribuibile |
+| `Exams/Simulazioni/Prove/`, `Archivio/` | Simulazioni generate, usa e getta |
+| `Exams/STORICO_SIMULAZIONI.md` | Storico dei punteggi: dato personale |
+| `Exams/Simulazioni/GUIDA.md` | Guida personale, contiene il registro delle prove |
+| `SYLLABUS.MD`, `REPORT.MD` | Documenti di regia del percorso |
+
+La linea è netta: **la logica è pubblica, i risultati di chi la usa no.** Le regole di generazione, la guida alle simulazioni e gli strumenti dell'aula stanno nel repository; punteggi e prove svolte restano sul disco.
+
+I file `.class` invece **sono committati di proposito** in `Progetti Recap` e in `Exams`: i tester black-box devono essere distribuibili già compilati.
+
+---
+
+## Licenza
+
+[MIT](LICENSE) — © 2026 devmirkoo. Materiale pensato per uso didattico personale.
+
+> **Nota.** Appunti, tracce di simulazione e strumenti d'aula sono stati costruiti con l'assistenza di modelli linguistici, a partire dal materiale del corso e dagli errori realmente commessi agli appelli. Le tracce degli appelli ufficiali sono ricostruzioni: struttura e vincoli sono quelli reali, i dettagli operativi sono dichiarati come tali nel README di ogni cartella.
