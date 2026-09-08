@@ -208,21 +208,176 @@ class GestoreOrdinamento {
 ## 5. Gestione delle Eccezioni
 
 ### Teoria Fondamentale
-Le eccezioni sono eventi anomali che interrompono il normale flusso del programma. Java usa un sistema basato su oggetti per gestire questi errori.
+Le eccezioni sono eventi anomali che interrompono il normale flusso del programma. Java usa un sistema basato su oggetti per gestire questi errori: quando qualcosa va storto viene *creato* un oggetto eccezione e *lanciato*; il flusso normale si interrompe e la JVM risale la pila delle chiamate cercando qualcuno che lo catturi. Se nessuno lo cattura, il programma termina.
 
-- **Checked Exceptions**: Errori che il compilatore ci obbliga a gestire (es. apertura di un file inesistente).
-- **Unchecked Exceptions**: Errori logici (es. divisione per zero, puntatore nullo) che derivano da `RuntimeException`.
+```text
+Throwable
+├── Error                 → guasti della JVM (OutOfMemoryError). NON si catturano.
+└── Exception             → CHECKED: il compilatore ti obbliga a gestirle
+    ├── IOException, FileNotFoundException, SQLException, InterruptedException...
+    └── RuntimeException  → UNCHECKED: il compilatore non dice niente
+        ├── NullPointerException, ArithmeticException,
+        └── ArrayIndexOutOfBoundsException, NumberFormatException...
+```
 
-### Sintassi: Try-Catch-Finally
+- **Checked Exceptions**: tutto ciò che discende da `Exception` **ma non** da `RuntimeException`. Rappresentano guasti esterni prevedibili (il file non c'è, la rete cade). Il compilatore pretende che tu faccia una delle due cose: catturarle (`try`/`catch`) oppure dichiarare che le propaghi (`throws`). Non esiste una terza via.
+- **Unchecked Exceptions**: discendono da `RuntimeException`. Rappresentano errori di programmazione (puntatore nullo, indice fuori range, divisione per zero). Il compilatore le ignora: si propagano da sole fino al `main` e fanno esplodere il programma se nessuno le ferma.
+
+**La regola operativa che serve all'esame:** se una traccia dice *"il metodo dichiara di poter propagare al chiamante un'eccezione controllata"*, sta chiedendo `throws` nella firma. Se dice *"l'eccezione raggiunge il chiamante senza essere dichiarata"*, sta chiedendo una `RuntimeException`.
+
+### Le cinque parole chiave
+Sono cinque e vanno sapute distinguere a memoria, perché le tracce le chiedono per nome.
+
+| Keyword | Dove si scrive | Cosa fa |
+| :--- | :--- | :--- |
+| `try` | blocco | delimita il codice sorvegliato |
+| `catch` | dopo `try` | intercetta un tipo di eccezione e la gestisce |
+| `finally` | dopo `try`/`catch` | **viene eseguito sempre**: sia in caso di successo, sia dopo un `catch`, sia mentre un'eccezione sta uscendo dal metodo |
+| `throw` | dentro il corpo | **lancia** un'istanza: `throw new IOException("messaggio");` |
+| `throws` | nella **firma** del metodo | **dichiara** che il metodo può propagare quel tipo al chiamante |
+
+> **`throw` contro `throws`: la confusione più comune.** `throw` è un'azione, prende **un oggetto** e lo lancia adesso. `throws` è una dichiarazione, prende **uno o più tipi**, sta nella firma e non lancia niente — avvisa soltanto il chiamante. Una `s` di differenza, due significati che non si toccano.
+
+### `finally`: perché le tracce lo impongono
+`finally` viene eseguito **sempre**, anche quando dal `try` si esce con un `return` o mentre un'eccezione sta risalendo. Il suo scopo naturale è la pulizia delle risorse (chiudere file e socket), e per questo è il posto giusto per il codice che deve avvenire in ogni scenario possibile.
+
+Quando una traccia dice *"la stampa deve trovarsi dentro il blocco `finally`"*, sta verificando che tu abbia capito questa proprietà: **una stampa collocata altrove può produrre esattamente lo stesso output e valere comunque zero punti su quel requisito.** Il risultato a schermo non dimostra niente sulla struttura, ed è la struttura che viene valutata.
+
+Ordine di esecuzione, da tenere a mente:
+
 ```java
 try {
-    // Codice che potrebbe generare un errore
-    int risultato = 10 / 0;
-} catch (ArithmeticException e) {
-    // Gestione dell'errore
-    System.err.println("Errore: Divisione per zero!");
+    System.out.println("1");
+    throw new RuntimeException("boom");
+} catch (RuntimeException e) {
+    System.out.println("2");     // eseguito perché il tipo corrisponde
 } finally {
-    // Codice eseguito sempre
-    System.out.println("Pulizia risorse.");
+    System.out.println("3");     // eseguito comunque, per ultimo
+}
+// stampa: 1, 2, 3
+```
+
+Se il `catch` non cattura quel tipo, l'ordine diventa `1`, `3`, poi l'eccezione esce dal metodo: **il `finally` gira prima che l'eccezione se ne vada.**
+
+### Esempio completo: tutte e cinque le parole chiave in un metodo
+È lo schema esatto chiesto in più appelli: un metodo che si comporta in modo diverso a seconda del parametro, con la stampa **dentro `finally`**, uno solo per tutti i casi.
+
+```java
+import java.io.IOException;
+
+class Gestore {
+
+    // 'throws Exception' = dichiarazione (checked propagata al chiamante).
+    public void verifica(int n) throws Exception {
+        // Inizializzato subito: il compilatore pretende che 'messaggio' abbia
+        // un valore su OGNI cammino che arriva al finally.
+        String messaggio = "no eccezioni";
+        try {
+            if (n == 0) {
+                // 'throw' = azione. Eccezione generica, catturata qui sotto.
+                throw new Exception("errore generico");
+            } else if (n == 1) {
+                throw new IOException("errore di I/O");
+            }
+        } catch (IOException e) {
+            // Conversione checked -> unchecked: la RuntimeException NON va
+            // dichiarata in 'throws' e raggiunge comunque il chiamante.
+            messaggio = "eccezione runtime";
+            System.out.println(messaggio);   // stampa prima di uscire
+            throw new RuntimeException(messaggio);
+        } catch (Exception e) {
+            // Nota l'ordine: IOException PRIMA di Exception. Il contrario non compila.
+            messaggio = "eccezione generica";
+        } finally {
+            // Unico punto di stampa per i casi che escono normalmente.
+            if (n != 1) {
+                System.out.println(messaggio);
+            }
+        }
+    }
 }
 ```
+
+Due dettagli che valgono punti:
+- **L'ordine dei `catch` va dal più specifico al più generale.** `catch (Exception e)` prima di `catch (IOException e)` non compila: `exception IOException has already been caught`.
+- **Un `catch` multiplo** si scrive `catch (IOException | SQLException e)` quando la gestione è identica.
+
+### `throws` e override: si può restringere, mai allargare
+Quando una sottoclasse riscrive un metodo, la clausola `throws` del metodo riscritto può dichiarare **meno** eccezioni controllate di quello della superclasse, o nessuna — **mai di più**, e mai un tipo più generale.
+
+```java
+class Base {
+    public void leggi() throws IOException { }
+}
+
+class Derivata extends Base {
+    public void leggi() { }                              // OK: zero eccezioni, è un restringimento
+}
+
+class Altra extends Base {
+    public void leggi() throws FileNotFoundException { } // OK: sottotipo di IOException
+}
+
+class Rotta extends Base {
+    public void leggi() throws Exception { }             // NON COMPILA: Exception è più generale
+}
+```
+
+La ragione è il polimorfismo: chi usa un `Base` ha scritto il proprio `catch` sulla base della firma di `Base`, e la sostituzione con una sottoclasse non deve poter far arrivare eccezioni impreviste. Le **unchecked** restano fuori da questa regola: si propagano comunque, dichiarate o no.
+
+### Eccezioni personalizzate (custom)
+Si creano estendendo una classe della gerarchia. La scelta della superclasse decide tutto il comportamento:
+
+```java
+// CHECKED: estende Exception. Chi la usa DEVE catturarla o dichiararla.
+class SaldoInsufficienteException extends Exception {
+    public SaldoInsufficienteException(String messaggio) {
+        super(messaggio);   // il messaggio va passato al costruttore della superclasse
+    }
+}
+
+// UNCHECKED: estende RuntimeException. Si propaga da sola, nessun obbligo.
+class CodiceNonValidoException extends RuntimeException {
+    public CodiceNonValidoException(String messaggio) {
+        super(messaggio);
+    }
+}
+
+class ContoCorrente {
+    private double saldo;
+
+    public ContoCorrente(double saldo) { this.saldo = saldo; }
+
+    // Checked: il 'throws' è obbligatorio, il compilatore lo pretende.
+    public void preleva(double importo) throws SaldoInsufficienteException {
+        if (importo > saldo) {
+            throw new SaldoInsufficienteException("saldo insufficiente: " + saldo);
+        }
+        saldo -= importo;
+    }
+}
+```
+
+Il messaggio si recupera con `e.getMessage()`. **Se una traccia chiede un messaggio specifico, quel messaggio deve stare nel costruttore**: `throw new Exception()` senza argomenti compila benissimo e perde il requisito senza che nulla lo segnali.
+
+### `try-with-resources`: il `finally` scritto dal compilatore
+Quando il `finally` serve solo a chiudere risorse, esiste una forma più sicura. Ogni oggetto dichiarato fra le parentesi tonde del `try` viene chiuso automaticamente all'uscita del blocco, in ogni scenario, in ordine inverso di apertura.
+
+```java
+try (BufferedReader in = new BufferedReader(new FileReader("dati.txt"))) {
+    System.out.println(in.readLine());
+}   // in.close() chiamato qui, sempre, anche se readLine() esplode
+catch (IOException e) {
+    System.err.println("errore: " + e.getMessage());
+}
+```
+Funziona con qualunque tipo che implementi `AutoCloseable`: stream, `Socket`, `ServerSocket`, `DatagramSocket`, `Connection` JDBC. **Attenzione:** se la traccia impone esplicitamente un blocco `finally`, il `try-with-resources` non lo sostituisce agli occhi del correttore — la parola chiave richiesta deve comparire.
+
+### Errori Comuni
+- **Stampe fuori dal `finally` quando la traccia lo impone.** Output identico, requisito non soddisfatto: è una penalità pesante *a programma perfettamente funzionante*.
+- **`throw` al posto di `throws` (e viceversa).** `throw new IOException()` nella firma non compila; `throws new IOException()` nemmeno.
+- **Eccezione lanciata senza messaggio** quando la traccia ne pretende uno diverso per ogni caso.
+- **`catch (Exception e)` messo per primo.** Ingoia tutto e impedisce la compilazione dei `catch` successivi più specifici.
+- **`catch` vuoto.** Compila, non fa niente, e nasconde il guasto: l'errore più difficile da diagnosticare in assoluto.
+- **Dichiarare `throws` su una `RuntimeException` "per sicurezza".** È legale ma inutile e segnala che la distinzione checked/unchecked non è chiara.
+- **Istruzione vuota dopo un `if`:** `if (n > 0);` compila, il `;` chiude l'if e il blocco successivo viene eseguito sempre. È un errore di stile che nasce dalla fretta e sposta il comportamento del metodo.

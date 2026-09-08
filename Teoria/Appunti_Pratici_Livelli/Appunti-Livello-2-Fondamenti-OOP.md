@@ -37,6 +37,82 @@ public class Libro {
 }
 ```
 
+### Il Privacy Leak: quando `private` non basta
+Rendere un campo `private` protegge il **riferimento**, non l'**oggetto puntato**. Se un getter restituisce un campo di tipo classe (un array, una `ArrayList`, un oggetto qualunque), il chiamante riceve l'indirizzo dell'oggetto vero e da lì può modificarlo, scavalcando ogni setter con validazione.
+
+```java
+public class Squadra {
+    private String nome;
+    private ArrayList<String> giocatori;
+
+    // FUGA DI PRIVACY: restituisce il riferimento alla lista interna.
+    public ArrayList<String> getGiocatori() {
+        return giocatori;
+    }
+}
+
+// Dall'esterno:
+Squadra s = new Squadra("Messina");
+s.getGiocatori().clear();     // ha appena svuotato lo stato interno di s
+```
+
+Il campo era `private`, i setter validavano, e l'incapsulamento è stato aggirato lo stesso. Le difese, in ordine di frequenza d'uso:
+
+```java
+// 1. Restituire una COPIA (difesa più comune)
+public ArrayList<String> getGiocatori() {
+    return new ArrayList<>(giocatori);
+}
+
+// 2. Restituire una vista non modificabile
+public List<String> getGiocatori() {
+    return Collections.unmodifiableList(giocatori);
+}
+
+// 3. Non restituire affatto la struttura: esporre solo ciò che serve
+public int numeroGiocatori()      { return giocatori.size(); }
+public String giocatore(int i)    { return giocatori.get(i); }
+```
+
+Lo stesso vale **in entrata**: un costruttore o un setter che si limita ad assegnare un array ricevuto dall'esterno lascia al chiamante un riferimento vivo sullo stato interno. La difesa è simmetrica: copiare in ingresso.
+
+> **Perché conta all'esame.** "Rispettare rigorosamente l'information hiding" è un vincolo che ricorre in quasi tutte le tracce. Con i tipi primitivi (`int`, `double`) e con le `String` — che sono **immutabili**, quindi non modificabili da chi le riceve — bastano `private` più getter. Con array, liste e oggetti mutabili, un getter ingenuo è una falla.
+
+### I metodi ereditati da `Object`: `toString`, `equals`, `hashCode`
+Ogni classe Java discende da `Object` e ne eredita tre metodi che quasi sempre vanno riscritti.
+
+**`toString()`** — definisce come l'oggetto si stampa. Senza override, `System.out.println(oggetto)` produce qualcosa come `Persona@1b6d3586` (nome della classe e codice hash), praticamente inutile. Viene invocato **automaticamente** dentro le concatenazioni di stringhe e da `println`: è per questo che le tracce lo chiedono indicando "la sua rappresentazione testuale è nella forma …".
+
+```java
+@Override
+public String toString() {
+    return "Persona[" + nome + " " + cognome + "]";
+}
+```
+
+**`equals(Object)`** — definisce quando due oggetti sono "uguali". Senza override, `equals` confronta gli **indirizzi**, esattamente come `==`: due oggetti con gli stessi valori risultano diversi.
+
+```java
+@Override
+public boolean equals(Object o) {
+    if (this == o) return true;                       // stessa istanza
+    if (o == null || getClass() != o.getClass()) return false;
+    Persona altra = (Persona) o;                      // cast dopo il controllo di tipo
+    return nome.equals(altra.nome) && cognome.equals(altra.cognome);
+}
+```
+
+**`hashCode()`** — va riscritto **insieme** a `equals`: il contratto Java impone che due oggetti uguali secondo `equals` restituiscano lo stesso `hashCode`. Chi non lo rispetta ottiene una classe che si comporta in modo scorretto dentro `HashMap` e `HashSet` (l'oggetto viene inserito e poi non si ritrova più).
+
+```java
+@Override
+public int hashCode() {
+    return Objects.hash(nome, cognome);   // java.util.Objects
+}
+```
+
+> **`==` contro `.equals()` sulle `String`.** `==` confronta i riferimenti, `.equals()` il contenuto. Due stringhe con lo stesso testo possono stare in due oggetti diversi (tipico quando una arriva da input o da un file), e `==` restituisce `false` mentre il testo è identico. **Sulle stringhe si usa sempre `.equals()`.**
+
 ---
 
 ## 2. Variabili di Classe (Static) e Costanti
@@ -99,14 +175,171 @@ public class Registro {
 }
 ```
 
+### Wrapper e Autoboxing: perché `ArrayList<int>` non esiste
+Le collezioni Java memorizzano **solo oggetti**, mai tipi primitivi. Per ogni primitivo esiste quindi una classe involucro (*wrapper*):
+
+| Primitivo | `int` | `double` | `char` | `boolean` | `long` | `float` |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Wrapper | `Integer` | `Double` | `Character` | `Boolean` | `Long` | `Float` |
+
+`ArrayList<int>` **non compila**: si scrive `ArrayList<Integer>`. La conversione avanti e indietro però è automatica, e si chiama *autoboxing* (primitivo → wrapper) e *unboxing* (wrapper → primitivo):
+
+```java
+ArrayList<Integer> numeri = new ArrayList<>();
+numeri.add(5);                  // autoboxing: 5 diventa Integer.valueOf(5)
+int primo = numeri.get(0);      // unboxing: l'Integer torna int
+int somma = numeri.get(0) + 3;  // unboxing automatico dentro l'espressione
+```
+
+I wrapper portano con sé i metodi di conversione più usati, tutti statici:
+
+```java
+int n = Integer.parseInt("42");        // String -> int   (NumberFormatException se non è un numero)
+double d = Double.parseDouble("3.14");
+String s = String.valueOf(42);         // int -> String
+```
+
+> **Due trappole.** `Integer.parseInt` lancia una `NumberFormatException` (unchecked) su input non numerico: va prevista quando i dati arrivano da file, rete o utente. E su due `Integer` va usato `.equals()`, non `==`: sopra il valore 127 la cache dei wrapper non interviene e il confronto per riferimento fallisce anche a valori identici.
+
+### Iterare una collezione: `for-each`, `Iterator`, `Iterable`
+Ci sono tre modi di scorrere una collezione, e conviene sapere che sono lo stesso meccanismo.
+
+```java
+// 1. for-each: la forma da usare quasi sempre
+for (String p : partecipanti) {
+    System.out.println(p);
+}
+
+// 2. Iterator esplicito: l'unico modo per rimuovere durante la scansione
+Iterator<String> it = partecipanti.iterator();
+while (it.hasNext()) {
+    String p = it.next();
+    if (p.startsWith("A")) {
+        it.remove();          // rimozione sicura
+    }
+}
+
+// 3. indice: possibile su List, non su Set
+for (int i = 0; i < partecipanti.size(); i++) { ... }
+```
+
+Il `for-each` **è** un `Iterator`: il compilatore lo riscrive nella forma 2. Funziona su qualunque tipo che implementi l'interfaccia `Iterable`, cioè su tutte le collezioni e sugli array.
+
+> **`ConcurrentModificationException`.** Modificare la collezione (`add`/`remove` sulla lista) mentre la si sta scorrendo con un `for-each` provoca questa eccezione a runtime. È la ragione per cui `Iterator` espone `remove()`: rimuovere attraverso l'iteratore è l'unico modo sicuro di cancellare elementi durante la scansione.
+
 ---
 
-## 4. Inner Classes (Classi Interne)
+## 4. Classi Annidate (Nested Classes) e Inner Classes
 
-### Teoria Fondamentale: Relazioni di Composizione
-Una Inner Class è definita all'interno di un'altra classe. Viene usata per raggruppare classi che sono logicamente legate solo alla classe esterna, migliorando l'incapsulamento.
+### Teoria Fondamentale: annidare non è ereditare
+Una **classe annidata** è una classe dichiarata dentro il corpo di un'altra classe. È un meccanismo di **incapsulamento e di scope**, non di ereditarietà: serve a dire che un tipo ha senso solo dentro un altro tipo.
 
-### Esempio: Smartwatch e Batteria
+È il punto in cui si sbaglia più spesso, perché due costrutti diversi rispondono a due domande diverse:
+
+| | La domanda | La sintassi |
+| :--- | :--- | :--- |
+| **Ereditarietà** | `Offerta` **è una** `Asta`? (relazione IS-A) | `class Offerta extends Asta` |
+| **Classe annidata** | `Offerta` **vive dentro** una `Asta`? (relazione di appartenenza) | `class Offerta` scritta dentro il corpo di `Asta` |
+
+Un'offerta non *è* un'asta: *appartiene* a un'asta. Scrivere `extends` per ottenere l'annidamento è un errore doppio — concettuale e di compilazione (vedi "Errori comuni" a fine sezione).
+
+### Le quattro forme di classe annidata
+```java
+class Esterna {
+    class Membro { }               // 1. INNER CLASS (membro, NON statica)
+    static class Statica { }       // 2. STATIC NESTED CLASS
+    void metodo() {
+        class Locale { }           // 3. CLASSE LOCALE (visibile solo nel metodo)
+        Runnable r = new Runnable() {   // 4. CLASSE ANONIMA (definita e istanziata in un colpo)
+            public void run() { }
+        };
+    }
+}
+```
+Nel linguaggio della materia, **"inner class" indica solo la forma 1**: classe membro **senza** `static`. Le altre tre sono classi annidate, ma non "inner" in senso stretto.
+
+### Il privilegio dell'inner class: il riferimento implicito all'oggetto esterno
+È l'unica cosa che davvero distingue una inner class da una classe qualunque, ed è tutta la ragione per cui esiste.
+
+**Ogni oggetto di una inner class porta con sé, in modo invisibile e automatico, un riferimento all'oggetto della classe esterna che l'ha creato.** Non lo dichiari tu: c'è già, la JVM lo inserisce come campo nascosto (lo vedresti come `this$0` ispezionando il bytecode).
+
+Conseguenze pratiche, tutte e tre importanti:
+
+1. Dentro l'inner class puoi **leggere e scrivere i campi privati dell'oggetto esterno** chiamandoli per nome, come fossero tuoi. Non servono getter, non serve passare niente al costruttore.
+2. Se un nome è ambiguo (stesso identificatore nell'interna e nell'esterna), l'oggetto esterno si nomina esplicitamente con `Esterna.this.campo`.
+3. **Non può esistere un oggetto interno senza un oggetto esterno.** Perciò dall'esterno non si scrive `new Esterna.Interna(...)`, ma:
+
+```java
+Esterna e = new Esterna();
+Esterna.Interna i = e.new Interna();   // sintassi 'oggetto.new': dice QUALE esterna
+```
+
+La sintassi `e.new` esiste esattamente per fornire quell'oggetto esterno. Dentro la classe esterna, invece, `new Interna()` basta: l'oggetto esterno è `this`, implicito.
+
+### Esempio 1: inner class che manipola lo stato dell'oggetto esterno
+Un'asta con le sue offerte. `Offerta` è annidata e non statica, quindi può aggiornare direttamente `quota` e `nomeMigliorOfferente`, che sono privati di `Asta`.
+
+```java
+class Asta {
+    // Information hiding: nessuno tocca questi campi dall'esterno.
+    private String codiceAsta;
+    private double quota;
+    private String nomeMigliorOfferente;
+
+    public Asta(String codiceAsta, double quota, String nomeMigliorOfferente) {
+        this.codiceAsta = codiceAsta;
+        this.quota = quota;
+        this.nomeMigliorOfferente = nomeMigliorOfferente;
+    }
+
+    // INNER CLASS: dentro il corpo di Asta e SENZA static. Nient'altro serve.
+    // Niente extends, e nessun campo 'private Asta asta;' dichiarato a mano:
+    // sarebbe rifare peggio ciò che il linguaggio fa già da solo.
+    public class Offerta {
+        private String nomeOfferente;
+        private double quotaOfferta;
+
+        public Offerta(String nomeOfferente, double quotaOfferta) {
+            this.nomeOfferente = nomeOfferente;
+            this.quotaOfferta = quotaOfferta;
+        }
+
+        // 'quota' e 'nomeMigliorOfferente' sono campi PRIVATI di Asta,
+        // eppure qui si leggono per nome: è il riferimento implicito all'oggetto esterno.
+        public String stato() {
+            return "Asta " + codiceAsta + " a " + quota + " euro, miglior offerente " + nomeMigliorOfferente;
+        }
+
+        public boolean aggiungiOfferta(double importo) {
+            if (importo < quota) {
+                return false;                       // offerta troppo bassa: rifiutata
+            }
+            quota = importo;                        // scrive nell'oggetto Asta esterno
+            nomeMigliorOfferente = nomeOfferente;   // idem
+            return true;
+        }
+    }
+}
+
+// Uso dall'esterno
+class Banditore {
+    public static void main(String[] args) {
+        Asta asta = new Asta("A-100", 100.0, "nessuno");
+
+        Asta.Offerta mario = asta.new Offerta("Mario", 150.0);   // NON new Asta.Offerta(...)
+        System.out.println(mario.aggiungiOfferta(50.0));         // false: sotto la quota
+        System.out.println(mario.aggiungiOfferta(150.0));        // true: quota aggiornata
+
+        // Una seconda offerta sulla STESSA asta vede lo stato già aggiornato:
+        Asta.Offerta luca = asta.new Offerta("Luca", 150.0);
+        System.out.println(luca.stato());   // Asta A-100 a 150.0 euro, miglior offerente Mario
+    }
+}
+```
+
+### Esempio 2: inner class privata come dettaglio implementativo
+L'altro uso classico: nascondere del tutto un tipo di supporto che al mondo esterno non deve nemmeno essere visibile.
+
 ```java
 public class Smartwatch {
     private String marca;
@@ -114,24 +347,61 @@ public class Smartwatch {
 
     public Smartwatch(String marca) {
         this.marca = marca;
-        this.batteria = new Batteria();
+        this.batteria = new Batteria();   // dentro Asta/Smartwatch basta 'new Interna()'
     }
 
-    // Classe Interna Privata
+    // Classe interna PRIVATA: esiste solo per Smartwatch, invisibile fuori da qui.
     private class Batteria {
         private int percentuale = 100;
-        
+
         public void scarica() {
             percentuale -= 10;
+            if (percentuale <= 20) {
+                // Legge un campo privato dell'oggetto Smartwatch esterno.
+                System.out.println(marca + ": batteria quasi scarica.");
+            }
         }
     }
-    
+
     public void usa() {
         batteria.scarica();
         System.out.println(marca + " in uso...");
     }
 }
 ```
+
+### Quando invece serve `static`
+Una **static nested class** è annidata solo per organizzazione: **non** ha il riferimento all'oggetto esterno, quindi non può toccarne i campi d'istanza, e si istanzia come una classe normale.
+
+```java
+class Mappa {
+    private int scala;
+
+    static class Punto {          // static: nessun legame con una specifica Mappa
+        private int x, y;
+        Punto(int x, int y) { this.x = x; this.y = y; }
+        // int errore() { return scala; }   // NON COMPILA: 'scala' è d'istanza
+    }
+}
+
+Mappa.Punto p = new Mappa.Punto(3, 4);   // niente 'oggetto.new': non serve un'esterna
+```
+
+Regola di scelta: **se la classe annidata deve lavorare sui dati dell'oggetto esterno, è inner (non statica); se è solo un tipo di supporto autonomo, è static nested.**
+
+| | Inner class (`class X`) | Static nested (`static class X`) |
+| :--- | :--- | :--- |
+| Riferimento all'oggetto esterno | **Sì**, implicito | No |
+| Accede ai campi d'istanza privati dell'esterna | **Sì** | No (solo ai `static`) |
+| Come si istanzia dall'esterno | `esterna.new X()` | `new Esterna.X()` |
+| Può esistere senza un oggetto esterno | No | Sì |
+
+### Errori Comuni
+- **`class Offerta extends Asta` per "renderla interna".** `extends` non c'entra con l'annidamento. Oltre a essere concettualmente sbagliato, spesso **non compila**: il costruttore della sottoclasse invoca implicitamente `super()`, cioè un costruttore senza argomenti della classe esterna che di solito non esiste. Il messaggio è `constructor Asta in class Asta cannot be applied to given types; required: ... found: no arguments`.
+- **Mettere `static` quando la traccia chiede una inner class.** Sembra innocuo e compila, ma spegne l'unica funzione del costrutto: la classe non vede più i campi d'istanza dell'esterna, e `esterna.new X()` smette di funzionare.
+- **Dichiarare a mano `private Asta asta;` dentro la classe interna.** È il segno che non si sta usando il riferimento implicito. Funziona, ma raddoppia lo stato e tradisce il senso dell'esercizio: molte tracce lo vietano esplicitamente.
+- **`new Esterna.Interna(...)` su una inner class non statica.** Non compila: manca l'istanza esterna. Serve `esterna.new Interna(...)`.
+- **Dimenticare che l'inner class vede i campi *privati* dell'esterna e viceversa.** È legale e voluto: l'incapsulamento in Java è a livello di *classe di primo livello*, non di singola classe annidata.
 
 ---
 

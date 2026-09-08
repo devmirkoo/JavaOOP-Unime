@@ -73,6 +73,37 @@ try (Socket socket = new Socket("localhost", 5000);
 }
 ```
 
+#### Dettagli del `ServerSocket` che ricorrono nelle tracce
+```java
+ServerSocket server = new ServerSocket(5000);        // porta
+ServerSocket server = new ServerSocket(5000, 50);    // porta + coda delle connessioni in attesa
+```
+Il secondo parametro è il *backlog*: quante richieste di connessione il sistema operativo tiene in coda mentre il server è occupato e non ha ancora chiamato `accept()`. Oltre quel numero le connessioni vengono rifiutate.
+
+Sul lato lettura, `BufferedReader` non è l'unica scelta: gli stream del socket funzionano con qualunque decoratore di testo, e `Scanner` è la variante più compatta.
+
+```java
+// Equivalenti: leggono una riga dal socket
+BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+String riga = in.readLine();          // restituisce null a fine stream
+
+Scanner in = new Scanner(socket.getInputStream());
+String riga = in.nextLine();          // lancia NoSuchElementException a fine stream
+```
+`readLine()` che restituisce `null` segnala che l'altro capo ha chiuso la connessione: è il modo standard per accorgersi della disconnessione dentro un ciclo di lettura.
+
+#### Caso C: Inviare un **oggetto** invece di testo
+`PrintWriter` e `BufferedReader` servono per il testo. Per far viaggiare un intero oggetto sulla stessa connessione TCP si sostituiscono con `ObjectOutputStream` e `ObjectInputStream`, avvolti **sugli stream del socket**:
+
+```java
+ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+out.writeObject(persona);
+out.flush();
+Persona tornata = (Persona) in.readObject();
+```
+
+È la combinazione più richiesta agli appelli (serializzazione **attraverso** la rete) e ha regole proprie — quale stream aprire per primo, `flush()`, `serialVersionUID`, il confine fra `FileOutputStream` e `socket.getOutputStream()`. Trattazione completa in **Livello 4 → "Serializzazione attraverso la Rete"**.
+
 ---
 
 ### Implementazione UDP: Esempi di Invio Rapido
@@ -111,6 +142,105 @@ try (DatagramSocket cassetta = new DatagramSocket()) {
     System.out.println("Segnale inviato.");
 }
 ```
+
+---
+
+#### `InetAddress`: le tre cose da sapere prima di scrivere una riga di UDP
+1. **Non si costruisce con `new`.** `InetAddress` non ha costruttori pubblici: si ottiene solo dai suoi metodi statici di fabbrica.
+   ```java
+   InetAddress a = InetAddress.getByName("127.0.0.1");   // corretto (accetta IP o nome DNS)
+   InetAddress b = InetAddress.getLocalHost();           // corretto
+   InetAddress c = new InetAddress("127.0.0.1");         // NON COMPILA
+   ```
+   L'errore del compilatore è `InetAddress() has private access in InetAddress`.
+2. **Un `InetAddress` è soltanto un indirizzo: la porta non ci entra.** L'indirizzo IP dice *quale macchina*, la porta dice *quale programma su quella macchina*. Sono due informazioni separate e in Java vivono in due oggetti diversi. Scrivere `new InetAddress(host, porta)` è sbagliato due volte.
+3. **La porta si scrive sul pacchetto, non sul socket.** È la differenza strutturale con il TCP: in TCP il destinatario lo passi al costruttore del `Socket`; in UDP il socket è anonimo e il destinatario (indirizzo **e** porta) va sul `DatagramPacket`.
+
+   ```java
+   // TCP: il destinatario sta nel socket
+   Socket s = new Socket("127.0.0.1", 5555);
+   // UDP: il socket non sa dove andrà nulla, lo sa il pacchetto
+   DatagramSocket s = new DatagramSocket();
+   DatagramPacket p = new DatagramPacket(dati, dati.length, InetAddress.getByName("127.0.0.1"), 6666);
+   ```
+
+#### Richiesta e Risposta in UDP (il ciclo completo)
+L'esempio precedente è *fire-and-forget*: si spedisce e basta. Nella maggior parte delle tracce, però, il client deve anche **ricevere indietro** la risposta del server. Su UDP questo non è uno stream da leggere: **la risposta è un secondo datagramma**, e va attesa esplicitamente.
+
+Il ciclo è simmetrico e ha quattro passi per lato: prepara → spedisci → attendi → converti.
+
+```java
+// ---------------- CLIENT UDP: invia e ATTENDE la risposta ----------------
+class ClientUDP {
+    private String host;
+    private int porta;
+
+    public ClientUDP(String host, int porta) {
+        this.host = host;
+        this.porta = porta;
+    }
+
+    public String inviaMessaggio(String messaggio) {
+        // Socket "anonimo": il SO gli assegna una porta libera qualsiasi.
+        // È su questa porta che il client riceverà la risposta.
+        try (DatagramSocket socket = new DatagramSocket()) {
+
+            // 1. USCITA: testo -> byte, e destinatario scritto sulla busta.
+            byte[] datiUscita = messaggio.getBytes();
+            DatagramPacket uscita = new DatagramPacket(
+                    datiUscita, datiUscita.length,
+                    InetAddress.getByName(host), porta);
+            socket.send(uscita);
+
+            // 2. INGRESSO: il buffer lo alloco IO. receive() lo riempie, non lo crea.
+            byte[] buffer = new byte[1024];
+            DatagramPacket ingresso = new DatagramPacket(buffer, buffer.length);
+            socket.receive(ingresso);   // BLOCCANTE: aspetta il datagramma di risposta
+
+            // 3. byte -> testo. I due indici sono OBBLIGATORI (vedi trappola sotto).
+            return new String(ingresso.getData(), 0, ingresso.getLength());
+
+        } catch (IOException e) {
+            return null;
+        }
+    }
+}
+
+// ---------------- SERVER UDP: riceve e RISPONDE AL MITTENTE ----------------
+class ServerUDP {
+    public static void main(String[] args) throws IOException {
+        try (DatagramSocket socket = new DatagramSocket(6666)) {   // porta FISSA e nota
+            byte[] buffer = new byte[1024];
+
+            while (true) {
+                DatagramPacket ingresso = new DatagramPacket(buffer, buffer.length);
+                socket.receive(ingresso);
+
+                String testo = new String(ingresso.getData(), 0, ingresso.getLength());
+                System.out.println("Ricevuto: " + testo);
+
+                // Il mittente NON va conosciuto in anticipo: il pacchetto in arrivo
+                // porta con sé indirizzo e porta di chi l'ha spedito.
+                byte[] datiRisposta = ("RISPOSTA: " + testo).getBytes();
+                DatagramPacket risposta = new DatagramPacket(
+                        datiRisposta, datiRisposta.length,
+                        ingresso.getAddress(),   // <- chi ha scritto
+                        ingresso.getPort());     // <- su quale porta risponde
+                socket.send(risposta);
+            }
+        }
+    }
+}
+```
+
+> **`getAddress()` e `getPort()` sul pacchetto ricevuto** sono il meccanismo con cui un server UDP risponde senza sapere nulla dei suoi client. È l'equivalente UDP dell'oggetto `Socket` restituito da `accept()` in TCP.
+
+#### Trappole UDP
+- **Inviare e non ricevere.** Se la traccia dice "riceve la risposta e la restituisce", un metodo che finisce dopo `send()` risolve un problema diverso da quello chiesto. `send()` non aspetta niente e non fallisce se dall'altra parte non c'è nessuno: il codice sembra funzionare.
+- **`new String(pacchetto.getData())` senza i due indici.** Compila, gira, e restituisce il messaggio seguito da tutti i byte nulli residui del buffer da 1024. A schermo si vede poco o niente, ma qualunque confronto con una stringa attesa fallisce. **Sempre `new String(dati, 0, pacchetto.getLength())`.**
+- **Riusare lo stesso `DatagramPacket` in ingresso senza resettare la lunghezza.** Dopo un `receive()` la lunghezza del pacchetto diventa quella dei dati ricevuti: se lo riusi, la ricezione successiva viene troncata a quella misura. Costruisci un pacchetto nuovo a ogni giro (come nell'esempio) oppure richiama `setLength(buffer.length)`.
+- **`receive()` blocca per sempre** se la risposta non arriva (pacchetto perso: è UDP, succede). In un programma reale si mette un timeout: `socket.setSoTimeout(3000);` fa scattare una `SocketTimeoutException` dopo 3 secondi.
+- **Confondere i due costruttori di `DatagramSocket`.** `new DatagramSocket(porta)` si mette *in ascolto* su quella porta ed è il server; `new DatagramSocket()` prende una porta libera qualunque ed è il client. Se il client si legasse alla porta del server, otterrebbe `BindException: Address already in use`.
 
 ---
 

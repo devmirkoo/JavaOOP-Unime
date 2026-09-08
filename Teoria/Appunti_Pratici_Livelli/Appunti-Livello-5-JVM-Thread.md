@@ -105,6 +105,33 @@ public class RunnableAutoAvviante implements Runnable {
 // new RunnableAutoAvviante();
 ```
 
+*Esempio 2C: Implementazione tramite Classe Anonima o Lambda Expression*
+Questa è una tecnica estremamente utile ed elegante (specie negli esami) per risparmiare tempo e definire un Thread al volo senza dover creare una classe esterna. Si può istanziare una classe anonima che implementa `Runnable`, oppure usare la sintassi iper-compatta delle Lambda.
+```java
+// Metodo con Classe Anonima
+Runnable taskAnonimo = new Runnable() {
+    @Override
+    public void run() {
+        System.out.println("Esecuzione parallela tramite classe anonima.");
+    }
+};
+Thread t1 = new Thread(taskAnonimo);
+t1.start();
+
+// Metodo con Lambda Expression (moderno e rapido)
+Runnable taskLambda = () -> {
+    try {
+        System.out.println("Esecuzione parallela tramite Lambda.");
+        Thread.sleep(50);
+    } catch(InterruptedException e) {
+        System.out.println("Interrotto.");
+    }
+};
+Thread t2 = new Thread(taskLambda);
+t2.start();
+```
+
+
 ### Gli Stati (Ciclo di Vita) di un Thread
 1. **New**: Istanza appena creata, prima del `start()`.
 2. **Runnable**: Dopo `start()`. È in coda, fiducioso che lo Scheduler di Sistema (che usa spesso algoritmi *Preemptive* e *Round-Robin*) gli assegni presto un "time-slice" (fetta di tempo) della CPU.
@@ -123,6 +150,43 @@ public class RunnableAutoAvviante implements Runnable {
 > **Nota Tecnica: La Keyword `volatile`**
 > Quando si usa una **Variabile Sentinella** (come un flag booleano per fermare un thread), è fondamentale dichiararla come `volatile`. 
 > In Java, ogni thread può creare una copia locale delle variabili nella cache della CPU per velocizzare l'esecuzione. Senza `volatile`, un thread potrebbe continuare a leggere il valore "vecchio" dalla sua cache, ignorando il cambiamento effettuato da un altro thread. La keyword `volatile` obbliga la JVM a leggere e scrivere la variabile direttamente nella **Memoria Centrale (RAM)**, garantendo la visibilità immediata delle modifiche a tutti i thread coinvolti.
+
+### Il quadro dei metodi di `Thread`
+| Metodo | Statico? | Cosa fa |
+| :--- | :--- | :--- |
+| `start()` | no | rende il thread schedulabile: la JVM invocherà `run()` su un nuovo flusso |
+| `run()` | no | il codice da eseguire. **Invocarlo a mano non crea nessun thread** |
+| `sleep(ms)` | **sì** | sospende il **thread corrente**. Si può chiamare da qualsiasi classe, anche senza avere un oggetto `Thread` sotto mano. **Non rilascia i lock** |
+| `yield()` | **sì** | il thread corrente cede volontariamente la CPU ad altri di pari priorità, restando `runnable` |
+| `join()` | no | attende la morte del thread bersaglio |
+| `join(ms)` | no | come sopra, ma con un tetto massimo di attesa: dopo quel tempo il chiamante riprende comunque |
+| `isAlive()` | no | `true` se il thread è partito e non è ancora morto |
+| `getName()` / `setName(s)` | no | nome del thread, utile in stampa e debug. Si può passare anche al costruttore: `new Thread(task, "Bot-Alpha")` |
+| `Thread.currentThread()` | **sì** | riferimento al thread che sta eseguendo in questo momento |
+| `setPriority(int)` / `getPriority()` | no | priorità da `Thread.MIN_PRIORITY` (1) a `Thread.MAX_PRIORITY` (10), default `NORM_PRIORITY` (5) |
+| `stop()`, `suspend()`, `resume()` | no | **deprecati**: interrompono senza permettere alcuna pulizia. Si usa una variabile sentinella `volatile` |
+
+La priorità è un **suggerimento** allo scheduler, non una garanzia: quanta CPU tocchi davvero a un thread dipende anche dal sistema operativo. Non si progetta la correttezza di un programma sulle priorità.
+
+### Su cosa si prende il lock
+`synchronized` non blocca "il metodo": acquisisce il **monitor di un oggetto**. Cambia l'oggetto a seconda della forma:
+
+```java
+public synchronized void m() { ... }          // lock su 'this' (l'istanza)
+public static synchronized void s() { ... }   // lock sull'oggetto Class: uno solo per TUTTA la classe
+public void b() {
+    synchronized (risorsa) { ... }            // lock sull'oggetto indicato: blocco arbitrario
+}
+```
+
+Le prime due forme sono equivalenti a:
+
+```java
+public void m() { synchronized (this) { ... } }
+public static void s() { synchronized (NomeClasse.class) { ... } }
+```
+
+Conseguenza pratica: un metodo `synchronized` d'istanza e uno `static synchronized` della stessa classe **non si escludono a vicenda**, perché i due lock sono diversi. E la forma a blocco è preferibile quando la sezione critica è solo una parte del metodo: tiene il lock per meno tempo.
 
 ### Nemesi e Coordinamento: `wait()`, `notify()` e Deadlock
 Un **Deadlock (Stallo)** è un abbraccio mortale: il Thread A possiede il Lock 1 e aspetta il Lock 2. Il Thread B possiede il Lock 2 e aspetta il Lock 1. Nessuno molla la presa. Il software si pietrifica senza lanciare eccezioni.
@@ -188,3 +252,226 @@ public class WebCrawler implements Runnable {
     }
 }
 ```
+---
+
+## 2. Il Coordinamento in Pratica: Produttore/Consumatore
+
+### La regola d'oro: `wait()` va dentro un `while`, mai dentro un `if`
+È il punto tecnico più importante di tutta la concorrenza in Java, e l'errore più frequente.
+
+```java
+// SBAGLIATO
+if (buffer.isEmpty()) {
+    wait();
+}
+preleva();     // può eseguire su un buffer vuoto!
+
+// CORRETTO
+while (buffer.isEmpty()) {
+    wait();
+}
+preleva();     // qui la condizione è garantita falsa
+```
+
+Il motivo è che **`wait()` non promette che, al risveglio, la condizione sia cambiata.** Promette solo che qualcuno ha chiamato `notify`/`notifyAll` — o nemmeno quello:
+
+1. **`notifyAll()` sveglia tutti.** Se tre consumatori aspettano e viene prodotto **un** elemento, tutti e tre si risvegliano e rientrano in competizione per il lock. Il primo consuma l'elemento; il secondo e il terzo, con un `if`, proseguirebbero come se ci fosse ancora qualcosa da prendere.
+2. **Fra il risveglio e la riacquisizione del lock passa del tempo**, e in quel tempo un altro thread può aver cambiato di nuovo lo stato.
+3. **Esistono i risvegli spuri** (*spurious wakeups*): la specifica Java consente che un thread esca da `wait()` senza che nessuno l'abbia notificato.
+
+Il `while` è l'unica forma che ricontrolla la condizione dopo ogni risveglio. Con l'`if` la controlli una volta sola, prima di dormire, e agisci su un'informazione vecchia.
+
+**Vincolo di linguaggio:** `wait()`, `notify()` e `notifyAll()` si possono invocare **solo** possedendo il lock dell'oggetto, cioè dentro un metodo o un blocco `synchronized` su quell'oggetto. Fuori, la JVM lancia `IllegalMonitorStateException` a runtime (il codice compila).
+
+### Esempio completo: Buffer condiviso con capienza limitata (FIFO)
+Lo schema classico: un `Deposito` con capienza massima, produttori che si bloccano quando è pieno, consumatori che si bloccano quando è vuoto.
+
+```java
+import java.util.LinkedList;
+import java.util.Queue;
+
+class Deposito {
+    // La risorsa condivisa è privata: nessuno la tocca se non attraverso i metodi sincronizzati.
+    private final Queue<Integer> coda = new LinkedList<>();
+    private final int capienza;
+
+    public Deposito(int capienza) {
+        this.capienza = capienza;   // assegnare DAVVERO il parametro: vedi Errori Comuni
+    }
+
+    // synchronized => mutua esclusione: un solo thread alla volta dentro questo metodo.
+    public synchronized void inserisci(int valore) throws InterruptedException {
+        while (coda.size() == capienza) {   // while, non if
+            wait();                          // rilascia il lock e dorme
+        }
+        coda.add(valore);                    // add in coda
+        System.out.println(Thread.currentThread().getName() + " ha prodotto " + valore);
+        notifyAll();                         // sveglia chi aspetta (produttori E consumatori)
+    }
+
+    public synchronized int preleva() throws InterruptedException {
+        while (coda.isEmpty()) {             // while, non if
+            wait();
+        }
+        int valore = coda.poll();            // poll dalla TESTA => FIFO
+        System.out.println(Thread.currentThread().getName() + " ha consumato " + valore);
+        notifyAll();
+        return valore;
+    }
+
+    // Un getter LEGGE E BASTA: sincronizzato per la visibilità, mai bloccante.
+    public synchronized int getDimensione() {
+        return coda.size();
+    }
+}
+
+class Produttore implements Runnable {
+    private final Deposito deposito;
+    public Produttore(Deposito deposito) { this.deposito = deposito; }
+
+    @Override
+    public void run() {
+        try {
+            for (int i = 1; i <= 5; i++) {
+                deposito.inserisci(i);
+                Thread.sleep(50);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();   // ripristina il flag, non ingoiare l'interruzione
+        }
+    }
+}
+
+class Consumatore implements Runnable {
+    private final Deposito deposito;
+    public Consumatore(Deposito deposito) { this.deposito = deposito; }
+
+    @Override
+    public void run() {
+        try {
+            for (int i = 1; i <= 5; i++) {
+                deposito.preleva();
+                Thread.sleep(80);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
+
+class Magazzino {
+    public static void main(String[] args) throws InterruptedException {
+        Deposito deposito = new Deposito(3);
+
+        Thread p = new Thread(new Produttore(deposito), "Produttore");
+        Thread c = new Thread(new Consumatore(deposito), "Consumatore");
+
+        p.start();
+        c.start();
+        p.join();
+        c.join();
+
+        System.out.println("Elementi rimasti: " + deposito.getDimensione());
+    }
+}
+```
+
+> **FIFO contro LIFO.** Con una `Queue` si aggiunge in coda (`add`) e si preleva dalla testa (`poll`): primo entrato, primo uscito. Se implementi il buffer con un array e **un solo indice**, usato sia per inserire sia per prelevare, ottieni una pila (LIFO): l'ultimo prodotto è il primo consumato. Compila, sembra funzionare, e se la traccia parla di "coda" o mostra un ordine atteso nell'output è un errore logico che costa punti. Servono **due indici** (o una `Queue`).
+
+---
+
+## 3. Parallelismo Reale con `join()`
+
+`join()` blocca il thread chiamante finché il thread bersaglio non è morto. Serve a due cose: aspettare che il lavoro sia finito, e leggere in sicurezza il risultato prodotto dal thread (dopo `join()` la visibilità in memoria è garantita).
+
+### L'errore che annulla il parallelismo
+```java
+// SBAGLIATO: avvia e aspetta nello stesso ciclo
+for (int i = 0; i < n; i++) {
+    ContaThread t = new ContaThread(dati, i);
+    t.start();
+    t.join();      // il main si ferma qui: il thread successivo parte solo dopo
+}
+// Risultato: i thread girano UNO DOPO L'ALTRO. Nessun parallelismo.
+
+// CORRETTO: due cicli distinti
+ContaThread[] worker = new ContaThread[n];
+for (int i = 0; i < n; i++) {
+    worker[i] = new ContaThread(dati, i);
+    worker[i].start();          // 1° ciclo: li avvia TUTTI
+}
+for (int i = 0; i < n; i++) {
+    worker[i].join();           // 2° ciclo: li aspetta TUTTI
+}
+```
+
+**Il pattern è sempre lo stesso: un ciclo che avvia, un ciclo che aspetta.** Mai i due nello stesso `for`.
+
+### Esempio: partizionare un array fra più thread
+```java
+class ContaPari extends Thread {
+    private final int[] dati;
+    private final int da, a;
+    private int risultato;      // scritto dal thread, letto dal main DOPO il join()
+
+    public ContaPari(int[] dati, int da, int a) {
+        this.dati = dati;
+        this.da = da;
+        this.a = a;
+    }
+
+    @Override
+    public void run() {
+        for (int i = da; i < a; i++) {
+            if (dati[i] % 2 == 0) {
+                risultato++;
+            }
+        }
+    }
+
+    // Getter sul TIPO CONCRETO: il main deve dichiarare ContaPari, non Thread.
+    public int getRisultato() { return risultato; }
+}
+
+class Analizzatore {
+    public static void main(String[] args) throws InterruptedException {
+        int[] dati = new int[1000];
+        for (int i = 0; i < dati.length; i++) dati[i] = i;
+
+        int nThread = 4;
+        int blocco = dati.length / nThread;
+        ContaPari[] worker = new ContaPari[nThread];   // NON Thread[]: servirebbe un cast
+
+        for (int i = 0; i < nThread; i++) {
+            int da = i * blocco;
+            int a = (i == nThread - 1) ? dati.length : da + blocco;   // l'ultimo prende il resto
+            worker[i] = new ContaPari(dati, da, a);
+            worker[i].start();
+        }
+
+        int totale = 0;
+        for (int i = 0; i < nThread; i++) {
+            worker[i].join();                  // prima aspetta...
+            totale += worker[i].getRisultato(); // ...poi legge
+        }
+        System.out.println("Numeri pari: " + totale);
+    }
+}
+```
+
+Ogni worker scrive in un campo **proprio**: nessuna variabile condivisa, quindi nessun `synchronized` necessario. La sincronizzazione serve solo quando più thread toccano lo *stesso* dato.
+
+---
+
+## 4. Errori Comuni sulla Concorrenza
+
+- **`wait()` dentro un `if`.** Trattato sopra: è l'errore numero uno.
+- **Un getter che si mette in attesa.** `public synchronized int getDimensione() { while (coda.isEmpty()) wait(); ... }` è concettualmente sbagliato: chiedere *"quanti elementi ci sono?"* non deve mai bloccare il chiamante. Se il buffer è vuoto la risposta corretta è `0`, immediata. Un getter legge e torna.
+- **Chiamare `run()` invece di `start()`.** Il metodo viene eseguito, in modo perfettamente sequenziale, sul thread chiamante. Nessun thread nuovo nasce e il programma sembra funzionare.
+- **`start()` e `join()` nello stesso ciclo.** Annulla il parallelismo (vedi sopra).
+- **Dichiarare l'array come `Thread[]` e poi chiamare un getter del worker.** `Thread` non conosce `getRisultato()`: o si dichiara l'array del tipo concreto, o serve un cast esplicito.
+- **Campo mai assegnato nel costruttore.** `public Deposito(int capienza) { capienza = capienza; }` assegna il parametro a se stesso: il campo resta a `0` e il buffer si comporta come se fosse sempre pieno. Serve `this.capienza = capienza;`. È un bug che i test sullo stato finale spesso non intercettano, perché il valore finale può coincidere per caso.
+- **`synchronized` su metodi che non toccano lo stato condiviso.** Non è più sicuro: è solo più lento, e segnala che non si è capito su cosa serve la mutua esclusione.
+- **Il lock è sull'oggetto, non sul metodo.** Due metodi `synchronized` della stessa istanza si escludono a vicenda; gli stessi metodi su **due istanze diverse** non si escludono affatto. Se la risorsa condivisa deve essere unica, deve esserci **un solo oggetto** condiviso fra i thread.
+- **Deadlock AB-BA.** Due thread che prendono due lock in ordine opposto (`A` poi `B` uno, `B` poi `A` l'altro) si bloccano a vicenda per sempre. La difesa è banale e va ricordata: **acquisire sempre i lock nello stesso ordine** in tutto il programma.
+- **`sleep()` non rilascia il lock, `wait()` sì.** Dormire dentro un blocco `synchronized` congela tutti gli altri thread in attesa di quel lock.

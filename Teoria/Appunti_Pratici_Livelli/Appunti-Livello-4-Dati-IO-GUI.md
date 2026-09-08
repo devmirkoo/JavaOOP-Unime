@@ -213,6 +213,171 @@ public class GestoreMagazzino {
 }
 ```
 
+#### Quando una classe è davvero serializzabile
+`implements Serializable` da solo non basta: la JVM deve poter convertire in byte **tutto ciò che l'oggetto contiene**. Le condizioni sono tre, e la violazione si scopre solo a runtime.
+
+1. **La classe implementa `Serializable`.** Altrimenti `writeObject` lancia `NotSerializableException` — il codice compila senza un avviso.
+2. **Ogni variabile d'istanza di tipo classe deve essere a sua volta serializzabile.** Un `Ordine` serializzabile che contiene un `Cliente` non serializzabile fallisce lo stesso: la catena si interrompe al primo anello. Le classi di libreria più comuni (`String`, i wrapper, `ArrayList`, `LinkedList`, `HashMap`) lo sono già.
+3. **La superclasse dev'essere serializzabile oppure avere un costruttore senza argomenti.** In deserializzazione i campi della superclasse non serializzabile non vengono ricostruiti dai byte: vengono reinizializzati chiamando il suo costruttore di default. Se quel costruttore non esiste, la deserializzazione fallisce.
+
+Chi vuole escludere un campo dalla catena lo marca `transient`: non viene scritto, e al ritorno vale `null` (oggetti) o `0` (numeri).
+
+#### Un oggetto scritto due volte non viene riscritto
+Dentro un singolo `ObjectOutputStream` la JVM assegna un numero di serie a ogni oggetto scritto. **Se lo stesso oggetto viene passato di nuovo a `writeObject`, sullo stream finisce solo il numero di serie, non i dati aggiornati.**
+
+```java
+Prodotto p = new Prodotto("Smartphone", 599.99);
+oos.writeObject(p);
+p.setPrezzo(499.99);      // modifica dopo la prima scrittura
+oos.writeObject(p);       // scrive solo il riferimento: rileggendo si ottengono DUE volte 599.99
+```
+
+Serve a evitare di duplicare oggetti condivisi e a gestire i riferimenti circolari, ma diventa una trappola quando si scrive in un ciclo un oggetto riutilizzato e modificato a ogni giro. Le vie d'uscita: creare un oggetto nuovo a ogni scrittura, oppure chiamare `oos.reset()` per azzerare la tabella dei numeri di serie.
+
+#### Anche un array è un oggetto
+Un array è un oggetto a tutti gli effetti, quindi si serializza in un colpo solo — a patto che il tipo degli elementi sia serializzabile. Vale anche per le collezioni.
+
+```java
+Prodotto[] catalogo = { p1, p2, p3 };
+oos.writeObject(catalogo);                              // un solo writeObject
+Prodotto[] letto = (Prodotto[]) ois.readObject();       // un solo readObject + cast
+
+ArrayList<Prodotto> lista = new ArrayList<>();
+oos.writeObject(lista);                                 // idem per le collezioni
+```
+
+#### "File binario" non è sinonimo di "serializzazione"
+Sono due cose diverse e le tracce le distinguono. Se una traccia chiede un **file binario** e tu consegni una serializzazione (o viceversa), il file prodotto ha un formato che il test non riconosce.
+
+| | File binario "crudo" | Serializzazione di oggetti |
+| :--- | :--- | :--- |
+| Classi | `FileInputStream` / `FileOutputStream`, o `DataInputStream` / `DataOutputStream` | `ObjectInputStream` / `ObjectOutputStream` |
+| Cosa scrivi | byte, `int`, `double`, `String` uno alla volta (`writeInt`, `writeDouble`, `writeUTF`) | l'oggetto intero, in un colpo (`writeObject`) |
+| La classe deve essere `Serializable` | No | **Sì**, altrimenti `NotSerializableException` |
+| Formato del file | lo decidi tu, campo per campo | formato interno della JVM, non leggibile a mano |
+| Come si rilegge | nello **stesso ordine** in cui hai scritto | `readObject()` + cast |
+
+`DataOutputStream` è la via di mezzo che le tracce chiamano "file binario": scrive tipi primitivi in formato binario portabile, senza coinvolgere la serializzazione.
+
+```java
+try (DataOutputStream out = new DataOutputStream(new FileOutputStream("magazzino.bin"))) {
+    out.writeUTF("Smartphone");   // String
+    out.writeInt(12);             // int
+    out.writeDouble(599.99);      // double
+}
+try (DataInputStream in = new DataInputStream(new FileInputStream("magazzino.bin"))) {
+    String nome = in.readUTF();       // stesso ordine della scrittura, obbligatoriamente
+    int quantita = in.readInt();
+    double prezzo = in.readDouble();
+}
+```
+
+### Serializzazione **attraverso la Rete**: lo stesso oggetto, un altro tubo
+Questo è il punto in cui la serializzazione viene sbagliata più spesso, e l'errore non è sintattico: è di **destinazione**.
+
+Riguarda la frase chiave del Pattern Decorator: `ObjectOutputStream` non sa niente di dove finiranno i byte. Sa solo trasformare un oggetto in byte e passarli allo stream che gli hai dato in pasto. Quello stream decide la destinazione:
+
+```java
+new ObjectOutputStream(new FileOutputStream("dati.dat"));   // i byte finiscono SU DISCO
+new ObjectOutputStream(socket.getOutputStream());           // i byte finiscono IN RETE
+```
+
+Le due righe sono quasi identiche a vedersi, e questa somiglianza è una trappola: **se la traccia dice "invia l'oggetto al server" e tu costruisci l'`ObjectOutputStream` su un `FileOutputStream`, hai scritto un programma che serializza perfettamente e non comunica con nessuno.** Non è un dettaglio da qualche punto: è aver risolto un problema diverso da quello richiesto.
+
+La regola da fissare: **il verbo della traccia ti dice quale stream avvolgere.** "Salva su file" → `FileOutputStream`. "Invia al server" / "trasmetti" / "spedisci sulla connessione" → `socket.getOutputStream()`.
+
+#### Il ciclo completo lato client
+Uno solo schema, da sapere a memoria: connetti → avvolgi → scrivi → leggi → cast.
+
+```java
+import java.io.*;
+import java.net.*;
+
+// 1. La classe da spedire DEVE essere serializzabile: senza 'implements Serializable'
+//    il writeObject lancia NotSerializableException a runtime (compila benissimo!).
+class Persona implements Serializable {
+    // Nome ESATTO, tipo ESATTO: static final long serialVersionUID.
+    // Una lettera diversa (serialversionUID, serialVersionUid) compila senza un fiato
+    // e diventa un campo qualunque, inerte: la protezione di versione sparisce.
+    private static final long serialVersionUID = 1L;
+
+    private String nome;
+    private String cognome;
+
+    public Persona(String nome, String cognome) {
+        this.nome = nome;
+        this.cognome = cognome;
+    }
+
+    public String getNome()    { return nome; }
+    public String getCognome() { return cognome; }
+
+    @Override
+    public String toString() {
+        return "Persona[" + nome + " " + cognome + "]";
+    }
+}
+
+class Client {
+
+    public Persona invia(Persona p) {
+        // try-with-resources: Socket e stream sono AutoCloseable, si chiudono da soli.
+        try (Socket socket = new Socket("127.0.0.1", 5555);
+
+             // 2. L'OUTPUT si apre SEMPRE PER PRIMO (vedi la trappola dell'header, sotto).
+             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+             ObjectInputStream  in  = new ObjectInputStream(socket.getInputStream())) {
+
+            // 3. Invio: l'oggetto diventa byte e viaggia sulla connessione.
+            out.writeObject(p);
+            out.flush();                      // spinge fuori i byte rimasti nel buffer
+
+            // 4. Attesa e ricostruzione: readObject() restituisce Object, il cast è obbligatorio.
+            return (Persona) in.readObject();
+
+        } catch (IOException | ClassNotFoundException e) {
+            // ClassNotFoundException: i byte sono arrivati ma la classe non esiste qui.
+            return null;
+        }
+    }
+}
+```
+
+#### Il lato server, per capire cosa succede dall'altra parte
+```java
+try (ServerSocket server = new ServerSocket(5555)) {
+    while (true) {
+        try (Socket client = server.accept();
+             ObjectOutputStream out = new ObjectOutputStream(client.getOutputStream());
+             ObjectInputStream  in  = new ObjectInputStream(client.getInputStream())) {
+
+            Persona ricevuta = (Persona) in.readObject();   // deserializza
+            System.out.println("Arrivata: " + ricevuta);
+            out.writeObject(ricevuta);                      // rimanda indietro
+            out.flush();
+        }
+    }
+}
+```
+
+> **Il punto concettuale.** L'oggetto che torna indietro **non è lo stesso oggetto** che hai spedito: è una copia ricostruita dai byte. `inviata == ricevuta` è `false`, mentre i campi coincidono. È la prova che la serializzazione è avvenuta davvero — ed è esattamente ciò che un test può controllare per distinguere una vera trasmissione da una simulazione locale.
+
+#### File contro Rete, in una tabella
+| | Serializzazione su **file** | Serializzazione su **rete** |
+| :--- | :--- | :--- |
+| Stream avvolto in uscita | `new FileOutputStream("dati.dat")` | `socket.getOutputStream()` |
+| Stream avvolto in ingresso | `new FileInputStream("dati.dat")` | `socket.getInputStream()` |
+| Chi apre il canale | nessuno: basta il percorso | `new Socket(host, porta)` lato client, `accept()` lato server |
+| Quando si legge | quando vuoi, anche fra giorni | subito: c'è qualcuno dall'altra parte che aspetta |
+| Se sbagli mezzo | il file compare nella cartella | non arriva niente al server |
+
+#### Trappole specifiche della serializzazione su socket
+- **La trappola dell'header (deadlock all'apertura).** Il costruttore di `ObjectOutputStream` scrive subito un'intestazione sullo stream; quello di `ObjectInputStream` **si blocca** finché non legge l'intestazione dell'altro capo. Se client e server aprono entrambi l'input per primo, restano bloccati per sempre, senza errori e senza output. **Apri sempre l'`ObjectOutputStream` per primo, su entrambi i lati.**
+- **`flush()` dopo `writeObject`.** Senza, i byte possono restare nel buffer locale e il destinatario aspetta un messaggio che non è mai partito.
+- **La stessa classe deve esistere su entrambi i lati**, con lo stesso nome e lo stesso `serialVersionUID`. Altrimenti `ClassNotFoundException` o `InvalidClassException`.
+- **`transient` viaggia come valore di default.** Un campo `transient` non viene serializzato: dall'altra parte arriva `null` (oggetti) o `0` (numeri). Utile per le password, letale se ci metti dentro un dato che serve.
+- **Non chiudere lo stream se devi ancora leggere.** `out.close()` chiude anche il socket sottostante: la risposta non arriverà mai. Usa `flush()`, e lascia che sia il `try-with-resources` a chiudere tutto alla fine.
+
 ### Best Practices & Errori Comuni
 - **Il Memory Leak del Buffer non svuotato:** Se decidi di ignorare il `try-with-resources` e gestisci gli stream manualmente senza chiamare l'indispensabile metodo `.close()` (o almeno `.flush()`) su scrittori come `PrintWriter` o `BufferedWriter`, i dati rimarranno intrappolati nella RAM e il file sul disco risulterà tristemente vuoto. Il `close()` è l'atto che forza lo svuotamento fisico sul disco.
 - **La Trappola della `InvalidClassException`:** Come anticipato, se serializzi un oggetto su file, poi chiudi il programma, aggiungi una nuova variabile alla sua classe e riprovi a leggere il vecchio file di salvataggio, il programma esploderà lanciando una `InvalidClassException`. La JVM, per sicurezza, ricalcola un ID basato sulla nuova struttura della classe e, vedendo che non corrisponde a quello salvato nel file, blocca la procedura temendo una compromissione dei dati. Metti *sempre* un `serialVersionUID` statico.
