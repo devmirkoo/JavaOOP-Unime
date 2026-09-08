@@ -10,7 +10,7 @@ La lingua del repository è l'italiano — tracce, appunti, report e commit.
 
 ## Indice
 
-- [Le quattro aree](#le-quattro-aree)
+- [Le tre aree](#le-tre-aree)
 - [Struttura](#struttura)
 - [`Teoria/` — gli appunti](#teoria--gli-appunti)
 - [`Esercitazioni (Self)/` — il percorso a 7 livelli](#esercitazioni-self--il-percorso-a-7-livelli)
@@ -23,14 +23,13 @@ La lingua del repository è l'italiano — tracce, appunti, report e commit.
 
 ---
 
-## Le quattro aree
+## Le tre aree
 
 | Area | Cosa contiene | A cosa serve |
 |---|---|---|
 | **`Teoria/`** | Appunti in Markdown, ~3 500 righe | Studiare e ripassare la teoria, con gli esempi già compilati e verificati |
 | **`Esercitazioni (Self)/`** | Esercizi Java scritti dallo studente, organizzati su 7 livelli | Fare pratica in ordine crescente di difficoltà |
 | **`Exams/`** | Tracce d'appello reali, tester black-box, e gli strumenti per simulare l'esame | Prepararsi alla prova, non solo alla materia |
-| **`docs/`** | Decisioni di design sul repository | Ricordare perché il repository è fatto così |
 
 ---
 
@@ -42,8 +41,7 @@ JavaOOP-Unime/
 ├── Teoria/
 │   ├── Fondamenti_e_Pilastri_OOP/       teoria trasversale, 01 → 06
 │   ├── Appunti_Pratici_Livelli/         un file per Livello 1-7
-│   ├── Extra/                           approfondimenti (client-server)
-│   └── MAPPA_LACUNE.md                  appelli ↔ appunti: cosa mancava, dove è stato colmato
+│   └── Extra/                           approfondimenti (client-server)
 │
 ├── Esercitazioni (Self)/
 │   ├── Livello 1/ … Livello 7/
@@ -63,7 +61,6 @@ JavaOOP-Unime/
 │   ├── aula.py                          aula d'esame in browser: tracce, cronometro, Esegui, consegna
 │   └── esegui.sh                        replica il pulsante Esegui sul singolo esercizio
 │
-├── docs/superpowers/specs/              decisioni di design
 ├── CLAUDE.md                            istruzioni per gli agenti che lavorano sul repository
 └── LICENSE                              MIT
 ```
@@ -91,9 +88,6 @@ Segue il Syllabus a sette livelli, uno a uno. Ogni file è autosufficiente: teor
 | `Livello 7` | Maven, JDBC, NoSQL, Spring Boot |
 
 Gli esempi di codice sono **compilati ed eseguiti** prima di entrare negli appunti, quelli di rete e concorrenza compresi.
-
-### `MAPPA_LACUNE.md`
-Il documento di controllo: confronta quello che gli appelli hanno davvero chiesto con quello che gli appunti coprivano, e registra ogni buco trovato, dove è stato colmato e cosa resta scoperto. Il criterio non è *"l'argomento manca"* ma **"manca nella forma che l'esame chiede"** — un esempio di serializzazione su file insegna la serializzazione e non insegna la destinazione.
 
 ---
 
@@ -128,7 +122,6 @@ Quattro appelli in `Appelli Ufficiali Unime/`. **EXAM3 ed EXAM4 sono stati realm
 | `README.md` | La traccia, nello stile scarno dell'appello, con l'**output atteso** |
 | `Soluzione.java` | Il foglio di partenza: solo gli `import`. È il file che compili |
 | `Main.class` | Il **tester black-box**, già compilato. Il sorgente non esiste, come all'appello |
-| `_solutions/ESn/` | Soluzione di riferimento commentata nel punto esatto di ogni errore, più le note di correzione |
 
 I tester non verificano solo l'output: verificano **il modo**. Alcuni leggono la classe per riflessione (una classe annidata è davvero non statica?), altri contengono il server e contano le connessioni ricevute — così una soluzione che serializza su file invece che sulla rete fallisce anche se l'oggetto "torna indietro" corretto.
 

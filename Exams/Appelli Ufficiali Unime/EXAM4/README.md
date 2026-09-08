@@ -1,17 +1,15 @@
-# EXAM4 — Appello sostenuto dell'8 settembre 2026
+# EXAM4 — Appello del 8 settembre 2026
 
-**Secondo appello effettivamente svolto in aula**, dopo EXAM3 (8 luglio 2026, 16/31, voto
-rifiutato). EXAM1 ed EXAM2 restano ricostruzioni.
+Secondo appello **realmente sostenuto**, dopo EXAM3.
 
-**Esito stimato: 14,5 / 31 — sotto la soglia di 16.** La stima è ricostruita a partire dal
-racconto dello studente subito dopo la prova, non dal file consegnato: vedi
-`Report_EXAM4.md` per la ripartizione e per il margine di incertezza.
+| Esercizio | Argomento |
+|---|---|
+| ES1 | `Asta` con inner class **non statica** `Offerta` |
+| ES2 | `ClientUDP`: invio di un datagramma e attesa della risposta |
+| ES3 | Metodo statico di conversione km → metri, dentro una classe |
 
-| Esercizio | Argomento | Esito stimato |
-|---|---|---|
-| ES1 | `Asta` con inner class **non statica** `Offerta` | **8 / 13** — struttura giusta, `extends Asta` la rende non compilabile |
-| ES2 | `ClientUDP`, invio e ricezione di datagrammi | **4 / 13** — `new InetAddress(host, porta)` e nessuna ricezione della risposta |
-| ES3 | Metodo statico di conversione km → metri | **2,5 / 5** — logica corretta, ma scritta fuori da qualsiasi classe |
+Tre argomenti che sembrano facili e non lo sono: `extends` non rende una classe annidata, su UDP
+inviare non è ricevere, e un metodo non può stare al primo livello di un file.
 
 ## Ricostruzione della traccia
 
@@ -38,10 +36,6 @@ l'ultimo dei tre.
 | `README.md` | La traccia |
 | `Soluzione.java` | Il foglio di partenza: solo gli `import`. È il file che compili |
 | `Main.class` | Il tester black-box, già compilato. Il sorgente non esiste, come all'appello |
-| `_solutions/ESn/Soluzione.java` | La soluzione di riferimento, con un commento nel punto esatto di ogni errore commesso |
-| `_solutions/ESn/Note.md` | Punteggio, errore in linguaggio piano, e cosa ricordare |
-
-`_solutions/` sta fuori dalle cartelle degli esercizi apposta, così `javac` non lo pesca.
 
 ## Rifarlo come una prova vera
 
@@ -54,8 +48,7 @@ tentativo: `--riparti`.
 
 ## I tester che mordono
 
-Nessuno dei tre verifica solo l'output: verificano **il modo**, che è l'asse su cui questo
-appello è stato perso.
+Nessuno dei tre verifica solo l'output: verificano **il modo**, che è l'asse decisivo.
 
 - **ES1** legge la classe per riflessione e controlla quattro vincoli prima ancora di eseguire
   qualcosa: `Offerta` annidata dentro `Asta`, **non statica**, **non discendente di `Asta`**, e

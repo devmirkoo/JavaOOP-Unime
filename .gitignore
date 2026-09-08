@@ -19,6 +19,16 @@ Exams/Simulazioni/GUIDA.md
 Exams/Simulazioni/Prove/
 Exams/Simulazioni/Archivio/
 
+# --- Materiale personale: soluzioni, valutazioni, analisi ---
+# Le tracce e i tester restano pubblici; quello che ho scritto io e come sono
+# stato valutato no.
+**/_solutions/
+**/_soluzione/
+**/Report_EXAM*.md
+**/Report_Esame_*.md
+Teoria/MAPPA_LACUNE.md
+docs/
+
 # --- Artefatti dell'aula d'esame e dello script esegui.sh ---
 .esecuzioni
 .aula.json

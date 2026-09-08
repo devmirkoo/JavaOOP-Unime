@@ -6,7 +6,7 @@ public class Main {
 
         System.out.println("Numero attuale conti creati: " + GestioneBancaria.getTotaleConti());
 
-        ContoBancario conto2 = new ContoBancario("devmirkoo", 195.45, 16);
+        ContoBancario conto2 = new ContoBancario("Mirko", 195.45, 16);
         ContoBancario conto3 = new ContoBancario("Luca Scamazza", 10.99, 1);
 
         System.out.println("Numero attuale conti creati: " + GestioneBancaria.getTotaleConti());

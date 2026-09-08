@@ -1,15 +1,17 @@
-# EXAM3 — Appello sostenuto dell'8 luglio 2026
+# EXAM3 — Appello del 8 luglio 2026
 
-**È l'unico appello effettivamente svolto in aula.** EXAM1 ed EXAM2 sono ricostruzioni; questo è il
-dato vero su come il docente costruisce le tracce e su come corregge.
+Appello **realmente sostenuto**: è il dato vero su come il docente costruisce le tracce e su cosa
+penalizza. EXAM1 ed EXAM2 sono ricostruzioni.
 
-**Esito: 16 / 31 — riserva.** Voto rifiutato.
+| Esercizio | Argomento |
+|---|---|
+| ES1 | Interfaccia elementare implementata su una classe |
+| ES2 | Le cinque parole chiave delle eccezioni, con vincolo esplicito sul blocco `finally` |
+| ES3 | `Persona` serializzata e inviata al server su socket |
 
-| Esercizio | Argomento | Esito reale |
-|---|---|---|
-| ES1 | Interfaccia elementare implementata su una classe | **5 / 5**, nessun rilievo |
-| ES2 | Le cinque parole chiave delle eccezioni | **penalità 3-5 punti**: codice compilante e output corretto, ma le stampe non erano dentro il blocco `finally` che la traccia imponeva |
-| ES3 | `Persona` serializzata e inviata al server su socket | **sostanzialmente azzerato**: `ObjectOutputStream` costruito su `FileOutputStream` — serializzazione su file invece che sullo stream di rete |
+I due esercizi da 13 punti isolano gli errori più costosi della materia: una stampa collocata fuori
+dal blocco che la traccia impone, e un `ObjectOutputStream` costruito su un `FileOutputStream`
+invece che sullo stream del socket — serializzazione perfetta, destinazione sbagliata.
 
 ## Cosa contiene ogni cartella
 
@@ -18,7 +20,6 @@ dato vero su come il docente costruisce le tracce e su come corregge.
 | `README.md` | La traccia |
 | `Soluzione.java` | Il foglio di partenza: solo gli `import`. È il file che compili |
 | `Main.class` | Il tester black-box, già compilato. Il sorgente non esiste, come all'appello |
-| `_soluzione/Soluzione.java` | La soluzione di riferimento. **Non viene compilata dal tester** — sta in una sottocartella apposta perché `javac` non la peschi |
 
 Le tracce di ES1 e ES2 sono state ricostruite nei dettagli operativi (nomi di classi e metodi, valori)
 a partire dal testo dell'appello, che era più scarno; la struttura, i vincoli architetturali e gli
@@ -31,16 +32,16 @@ costante di versione, invio dell'oggetto serializzato e rilettura della risposta
 python3 Exams/aula.py "Exams/Appelli Ufficiali Unime/EXAM3"
 ```
 
-Cronometro da un'ora, cinque esecuzioni per esercizio, consegna e report. Per ripartire da zero
+Cronometro, cinque esecuzioni per esercizio, consegna e report. Per ripartire da zero
 dopo un tentativo: `--riparti`.
 
 ## I due tester che mordono
 
-Non verificano solo l'output: verificano **il modo**, che è l'asse su cui questo appello è stato perso.
+Non verificano solo l'output: verificano **il modo**, che è l'asse su cui questo appello si vince o si perde.
 
 - **ES2** legge il sorgente e controlla che una stampa stia davvero dentro un blocco `finally`. Un
   programma che stampa le tre righe giuste dalla posizione sbagliata fallisce quella verifica —
-  esattamente la penalità presa in aula.
+  esattamente l'errore che la traccia vuole scovare.
 - **ES3** contiene il server dentro il tester, come all'appello: tu scrivi solo `Persona` e
   `Client`. Il server sa se una connessione è arrivata davvero, quindi una soluzione che serializza
   su file senza mai contattarlo fallisce due verifiche — la connessione mancata e il file comparso
