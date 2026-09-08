@@ -1,8 +1,34 @@
+# Ciò che non deve interessare allo studente né finire nel repository.
+
+# --- Sistema ---
 .DS_Store
 
+# --- Materiale di regia (non parte del percorso di studio) ---
 /java_lessons
 REPORT.MD
 SYLLABUS.MD
 
-# Ignora tutte le simulazioni AI
-Exams/Simulazioni\ AI/
+# --- Configurazione locale degli agenti ---
+.claude/
+
+# --- Materiale personale: percorso, punteggi, prove svolte ---
+# La logica di generazione e correzione è pubblica (REGOLE_GENERAZIONE_AI.MD,
+# Simulazioni/GUIDA_PUBBLICA.md); i risultati di chi la usa no.
+Exams/STORICO_SIMULAZIONI.md
+Exams/Simulazioni/GUIDA.md
+Exams/Simulazioni/Prove/
+Exams/Simulazioni/Archivio/
+
+# --- Artefatti dell'aula d'esame e dello script esegui.sh ---
+.esecuzioni
+.aula.json
+Consegna_*.md
+
+# --- Artefatti IDE, build e interprete ---
+out/
+target/
+.idea/
+*.iws
+*.ipr
+__pycache__/
+*.pyc
